@@ -1,0 +1,11 @@
+{
+	"id": "wand",
+	"name": "Wand",
+	"version": "0.1.0",
+	"minAppVersion": "0.15.0",
+	"description": "Natural language automation for Obsidian. Type what you want, and the AI creates a plan and executes it.",
+	"author": "BMF",
+	"authorUrl": "",
+	"fundingUrl": "",
+	"isDesktopOnly": true
+}
