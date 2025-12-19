@@ -1,0 +1,4 @@
+Agent: status-planner | 2025-12-17-000242
+Topic: Playwright E2E Testing for Obsidian Plugin
+Files: PLAN-20251217-000242.md, DOD-20251217-000242.md
+Items: 6 (P0: 4, P1: 2)

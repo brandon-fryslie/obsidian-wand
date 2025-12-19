@@ -1,0 +1,41 @@
+Agent: iterative-implementer | 2025-12-19-00:00:00
+Mode: manual
+Completed: Fixed ActionPlanSchema.ts to include Dataview and Templater tools | Files: 1 | Commits: 0 (pending)
+Cache invalidated: None (cache was empty)
+Status: complete
+
+## Summary
+
+Fixed a critical bug in the Templater integration where the ActionPlanSchema.ts was missing the Dataview and Templater tool definitions in its ToolNameSchema enum.
+
+## Issue Found
+
+The ToolNameSchema in src/schemas/ActionPlanSchema.ts only included the basic tools (vault, editor, workspace, commands, util) but was missing:
+- All 4 Dataview tools (dataview.status, dataview.query, dataview.pages, dataview.tasks)
+- All 4 Templater tools (templater.status, templater.run, templater.insert, templater.create)
+
+This would have caused schema validation failures when trying to create or validate action plans that use these tools.
+
+## Verification Performed
+
+Manual code review verified that all other integration points were correctly implemented:
+
+1. TemplaterService.ts - Correct service implementation with all 4 methods
+2. toolSchemas.ts - All 4 Templater schemas defined and registered in TOOL_SCHEMAS
+3. ActionPlan.ts - ToolName type includes all 4 Templater tools
+4. ToolsLayer.ts - All 4 Templater tools have case statements and implementations
+5. PlanGenerator.ts - Templater tools documented in system prompt and templater.status in read-only list
+
+## Files Modified
+
+- src/schemas/ActionPlanSchema.ts: Added Dataview and Templater tools to ToolNameSchema enum
+
+## Integration Complete
+
+All 4 Templater tools are now fully integrated:
+- templater.status: Check if Templater is available (read-only)
+- templater.run: Execute a template file and get the result
+- templater.insert: Execute a template and insert at cursor position
+- templater.create: Create a new note from a template
+
+The integration follows the same pattern as the Dataview tools and is ready for use.

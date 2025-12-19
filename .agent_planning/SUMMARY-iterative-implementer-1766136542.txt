@@ -1,0 +1,18 @@
+Agent: iterative-implementer | 2025-12-19-02:49:02
+Mode: manual
+Completed: Removed all conditional skips and graceful degradation tests from E2E tests | Files: 4 | Commits: 1
+Tests: 18 total tests (reduced from 22)
+Cache invalidated: None (cache was empty)
+Status: complete
+
+Summary:
+- Modified e2e/advancedtables.spec.ts: Removed conditional skip logic (lines 79-81, 52-56) and entire graceful degradation test (lines 110-188)
+- Modified e2e/tasks.spec.ts: Removed conditional skip logic (lines 84-86, 140-142) and entire graceful degradation test (lines 198-248)
+- Modified e2e/excalidraw.spec.ts: Removed conditional skip logic (lines 103-111) and entire graceful degradation test (lines 118-183)
+- Modified e2e/templater.spec.ts: Removed conditional skip logic (lines 189-202, 275-278, 343-346, 477-479) and entire "Templater Graceful Degradation" test.describe block (lines 537-572)
+
+All tests now assume plugins ARE installed and test actual functionality without fallbacks.
+Test count reduced from 22 to 18 (removed 4 graceful degradation tests).
+Build successful, all tests listed correctly.
+
+Commit: c6a908d - refactor(e2e): remove conditional skips and graceful degradation tests
