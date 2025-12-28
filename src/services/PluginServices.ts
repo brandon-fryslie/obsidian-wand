@@ -10,8 +10,9 @@ import { PlanStore } from "./PlanStore";
 import { PlanGenerator } from "./PlanGenerator";
 import { ExecutionManager } from "./ExecutionManager";
 import { TemplateStore } from "./TemplateStore";
-import { WandAgent } from "../agents/WandAgent";
 import { AgentDependencies } from "../agents/Agent";
+import { AgentRegistry } from "../agents/AgentRegistry";
+import { WandAgentFactory } from "../agents/WandAgentFactory";
 
 export class PluginServices {
   public readonly toolsLayer: ToolsLayer;
@@ -24,6 +25,7 @@ export class PluginServices {
   public readonly planGenerator: PlanGenerator;
   public readonly executionManager: ExecutionManager;
   public readonly templateStore: TemplateStore;
+  public readonly agentRegistry: AgentRegistry;
   public settings: ToolAgentSettings;
 
   constructor(app: App, settings: ToolAgentSettings) {
@@ -50,6 +52,10 @@ export class PluginServices {
       this.toolsLayer
     );
 
+    // Initialize agent registry
+    this.agentRegistry = new AgentRegistry();
+    this.agentRegistry.register("wand", new WandAgentFactory());
+
     // Create agent dependencies
     const agentDeps: AgentDependencies = {
       app,
@@ -60,13 +66,13 @@ export class PluginServices {
       approvalService: this.approvalService,
     };
 
-    // Create WandAgent
-    const wandAgent = new WandAgent(agentDeps);
+    // Create agent from registry
+    const agent = this.agentRegistry.create(settings.agent.type, agentDeps);
 
     // Create ChatController with agent
     this.chatController = new ChatController(
       app,
-      wandAgent,
+      agent,
       this.executor,
       this.approvalService
     );
