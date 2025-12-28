@@ -11,6 +11,7 @@ export class App {
   keymap: any;
   scope: any;
   metadataCache: any;
+  plugins: any;
   lastEvent: any;
 
   constructor() {
@@ -75,6 +76,12 @@ export class App {
       getCache: jest.fn(),
       on: jest.fn(),
       off: jest.fn(),
+    };
+
+    this.plugins = {
+      plugins: {},
+      enabledPlugins: new Set(),
+      getPlugin: jest.fn(),
     };
 
     this.lastEvent = null;
