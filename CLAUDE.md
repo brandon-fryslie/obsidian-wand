@@ -63,3 +63,223 @@ The chrome-devtools MCP is configured in `.mcp.json`:
 - The debug port (9222) must be free before launching
 - Only one Obsidian instance with debugging can run at a time
 - The `just obsidian` command will kill any existing debug session before starting
+
+---
+
+## Agent Architecture
+
+**Wand** uses a clean Agent API that separates agent-specific logic from plugin infrastructure.
+
+### Agent Interface
+
+All agents implement the `Agent` interface (`src/agents/Agent.ts`):
+
+```typescript
+interface Agent {
+  // Lifecycle
+  initialize(): Promise<void>;
+  cleanup(): void;
+
+  // Core functionality
+  handleUserMessage(message: string, context: AgentContext): Promise<AgentResponse>;
+  abort(): void;
+
+  // Metadata
+  getName(): string;
+  getDescription(): string;
+
+  // State
+  getState(): AgentState;
+  onStateChange(callback: (state: AgentState) => void): void;
+}
+```
+
+### Responsibilities
+
+**Agent responsibilities:**
+- Plan generation and prompt building
+- LLM interaction and retry logic
+- Placeholder resolution
+- Error formatting
+- State management (idle/thinking/executing/error)
+
+**ChatController responsibilities:**
+- Message history management
+- Approval flow coordination
+- Execution orchestration
+- UI state synchronization
+
+### Adding a New Agent
+
+To add a new agent type:
+
+1. **Create the Agent implementation** (`src/agents/YourAgent.ts`):
+   ```typescript
+   export class YourAgent implements Agent {
+     constructor(private deps: AgentDependencies) {}
+
+     async handleUserMessage(message: string, context: AgentContext): Promise<AgentResponse> {
+       // Your agent logic here
+       return { type: "plan", plan: yourPlan };
+     }
+
+     // Implement other Agent interface methods...
+   }
+   ```
+
+2. **Create a Factory** (`src/agents/YourAgentFactory.ts`):
+   ```typescript
+   export class YourAgentFactory implements AgentFactory {
+     create(deps: AgentDependencies): Agent {
+       return new YourAgent(deps);
+     }
+
+     getInfo(): AgentInfo {
+       return {
+         type: "your-agent",
+         name: "Your Agent",
+         description: "What your agent does",
+       };
+     }
+   }
+   ```
+
+3. **Register in PluginServices** (`src/services/PluginServices.ts`):
+   ```typescript
+   this.agentRegistry.register("your-agent", new YourAgentFactory());
+   ```
+
+4. **Add to settings** (`src/types/settings.ts`):
+   ```typescript
+   export type AgentType = "wand" | "your-agent";
+   ```
+
+5. **Update settings UI** (`src/main.ts`):
+   ```typescript
+   dropdown
+     .addOption("wand", "Wand Agent - Plan-based automation")
+     .addOption("your-agent", "Your Agent - Custom behavior")
+   ```
+
+### Current Agents
+
+#### WandAgent
+
+The original plan-based automation agent.
+
+**Philosophy:**
+- Understand before acting (gather context first)
+- Be proactively helpful (suggest improvements)
+- Think step by step (break complex tasks into phases)
+- Make intelligent suggestions (learn from vault patterns)
+
+**Features:**
+- Multi-step plan generation with retry logic
+- Automatic placeholder resolution via read-only step execution
+- Thoughtful prompt engineering for knowledge management tasks
+- Risk-aware approval flow
+
+---
+
+## Request Flow
+
+```
+User Input → ChatController.sendMessage()
+           → Agent.handleUserMessage()    # Agent-specific logic
+           → AgentResponse (plan/message/error)
+           → PlanValidator.validate()      # Validates structure
+           → ApprovalService.checkApproval() # Per-step approval
+           → Executor.execute()            # Runs approved steps
+```
+
+### Core Services (`src/services/`)
+
+| Service | Responsibility |
+|---------|----------------|
+| `ChatController` | Message history, approval flow, execution orchestration |
+| `Agent` | Plan generation, prompt building, error formatting (via interface) |
+| `AgentRegistry` | Agent type registration and factory pattern |
+| `LLMProvider` | API abstraction for OpenAI, Anthropic, custom endpoints |
+| `PlanValidator` | Validates ActionPlan schema, detects placeholders |
+| `Executor` | Runs steps in dependency order, supports foreach/retry/skip |
+| `ToolsLayer` | Maps tool names to Obsidian API calls |
+| `ApprovalService` | Determines if steps need user approval |
+| `PluginServices` | DI container that wires all services together |
+
+### Data Types (`src/types/`)
+
+- **ActionPlan** (`ActionPlan.ts`): The LLM's output - `{ goal, assumptions, riskLevel, steps[] }`
+- **Step**: Tool call with `{ id, tool, args, foreach?, dependsOn?, onError?, preview }`
+- **ToolName**: Union type of ~40 available tools (vault.*, editor.*, workspace.*, etc.)
+- **ExecutionContext**: Runtime state passed to each step (activeFile, selection, stepResults)
+- **AgentContext**: Lightweight context for agent (activeFile, selection, vaultPath)
+- **AgentResponse**: Agent's response (plan/message/error)
+
+### Tool Categories
+
+| Category | Examples | Risk Level |
+|----------|----------|------------|
+| Read-only | `vault.readFile`, `vault.listFiles`, `vault.searchText` | Safe |
+| Safe writes | `vault.createFile`, `vault.ensureFolder`, `editor.insertAtCursor` | Low |
+| Dangerous | `vault.writeFile`, `vault.delete`, `vault.rename`, `commands.run` | High |
+| Plugin integrations | `dataview.*`, `templater.*`, `tasks.*`, `excalidraw.*` | Varies |
+
+### Placeholder Resolution (WandAgent)
+
+When the LLM generates a plan with placeholder values (e.g., "path_to_file"), WandAgent:
+1. Executes read-only steps to gather actual data
+2. Calls the LLM again with gathered data via `buildResolutionPrompt()`
+3. Repeats up to 2 times until placeholders are resolved
+
+---
+
+## Project Structure
+
+```
+src/
+├── main.ts              # Plugin entry point, settings UI
+├── agents/              # Agent implementations
+│   ├── Agent.ts         # Agent interface and types
+│   ├── WandAgent.ts     # Plan-based automation agent
+│   ├── AgentRegistry.ts # Factory pattern for agent creation
+│   └── WandAgentFactory.ts
+├── views/               # Svelte-based UI components
+│   └── ChatView.ts      # Main chat interface
+├── services/            # Core business logic
+│   ├── ChatController.ts    # Orchestrates message flow
+│   ├── LLMProvider.ts       # API abstraction
+│   ├── Executor.ts          # Step execution engine
+│   ├── ToolsLayer.ts        # Tool implementations
+│   ├── ApprovalService.ts   # Permission checking
+│   └── PluginServices.ts    # DI container
+├── types/               # TypeScript interfaces
+│   ├── ActionPlan.ts    # Plan schema, ToolName union
+│   ├── settings.ts      # Plugin settings, tool permissions
+│   └── Plan.ts          # Plan wrapper with metadata
+├── schemas/             # Zod schemas for validation
+└── stores/              # Svelte stores for reactive state
+```
+
+## Key Patterns
+
+- **Agent API**: Clean separation between agent logic and plugin infrastructure
+- **Factory pattern**: AgentRegistry creates agents via factory functions
+- **Dependency injection**: AgentDependencies provides all required services
+- **State management**: ChatController uses callback-based state updates, UI subscribes via `onStateChange()`
+- **Error handling**: Agents format errors into user-friendly messages
+- **Retry logic**: Both agent plan generation and Executor support configurable retries
+- **Path safety**: `ToolsLayer.resolvePath()` prevents directory traversal, auto-appends `.md`
+
+## Testing
+
+```bash
+pnpm run test              # Run all tests
+pnpm run test -- tests/agents  # Run agent tests only
+pnpm run test:watch        # Watch mode
+```
+
+Key test files:
+- `tests/agents/WandAgent.test.ts` - Agent implementation tests
+- `tests/agents/AgentRegistry.test.ts` - Registry and factory tests
+- `tests/services/Executor.test.ts` - Execution engine tests
+- `tests/services/PlanValidator.test.ts` - Plan validation tests
