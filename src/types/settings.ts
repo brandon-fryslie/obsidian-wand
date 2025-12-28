@@ -1,6 +1,11 @@
 export type ApprovalMode = "ask" | "yolo" | "paranoid";
 
+export type AgentType = "wand";
+
 export interface ToolAgentSettings {
+  agent: {
+    type: AgentType;
+  };
   llm: {
     provider: "openai" | "anthropic" | "custom";
     /** @deprecated Use provider-specific keys instead */
@@ -71,6 +76,9 @@ export const DANGEROUS_TOOLS = [
 ];
 
 export const DEFAULT_SETTINGS: ToolAgentSettings = {
+  agent: {
+    type: "wand",
+  },
   llm: {
     provider: "openai",
     apiKey: "", // deprecated, kept for migration

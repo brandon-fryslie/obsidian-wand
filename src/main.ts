@@ -1,6 +1,6 @@
 import { App, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from "obsidian";
 import { ChatView, VIEW_TYPE_CHAT } from "./views/ChatView";
-import { ToolAgentSettings, DEFAULT_SETTINGS, READ_ONLY_TOOLS, SAFE_WRITE_TOOLS, DANGEROUS_TOOLS, ApprovalMode } from "./types/settings";
+import { ToolAgentSettings, DEFAULT_SETTINGS, READ_ONLY_TOOLS, SAFE_WRITE_TOOLS, DANGEROUS_TOOLS, ApprovalMode, AgentType } from "./types/settings";
 import { PluginServices } from "./services/PluginServices";
 
 export default class ToolAgentPlugin extends Plugin {
@@ -91,6 +91,22 @@ class ToolAgentSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+
+    // Agent Settings Section
+    containerEl.createEl("h2", { text: "Agent Settings" });
+
+    new Setting(containerEl)
+      .setName("Agent Type")
+      .setDesc("Choose which agent handles your requests")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("wand", "Wand Agent - Plan-based automation")
+          .setValue(this.plugin.settings.agent.type)
+          .onChange(async (value) => {
+            this.plugin.settings.agent.type = value as AgentType;
+            await this.plugin.saveSettings();
+          })
+      );
 
     containerEl.createEl("h2", { text: "LLM Provider Settings" });
 
