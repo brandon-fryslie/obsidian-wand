@@ -10,6 +10,8 @@ import { PlanStore } from "./PlanStore";
 import { PlanGenerator } from "./PlanGenerator";
 import { ExecutionManager } from "./ExecutionManager";
 import { TemplateStore } from "./TemplateStore";
+import { WandAgent } from "../agents/WandAgent";
+import { AgentDependencies } from "../agents/Agent";
 
 export class PluginServices {
   public readonly toolsLayer: ToolsLayer;
@@ -26,6 +28,7 @@ export class PluginServices {
 
   constructor(app: App, settings: ToolAgentSettings) {
     this.settings = settings;
+
     // Initialize in dependency order
     this.toolsLayer = new ToolsLayer(app);
     this.llmProvider = new LLMProvider(settings);
@@ -46,12 +49,25 @@ export class PluginServices {
       this.planStore,
       this.toolsLayer
     );
-    this.chatController = new ChatController(
+
+    // Create agent dependencies
+    const agentDeps: AgentDependencies = {
       app,
       settings,
-      this.llmProvider,
+      llmProvider: this.llmProvider,
+      executor: this.executor,
+      toolsLayer: this.toolsLayer,
+      approvalService: this.approvalService,
+    };
+
+    // Create WandAgent
+    const wandAgent = new WandAgent(agentDeps);
+
+    // Create ChatController with agent
+    this.chatController = new ChatController(
+      app,
+      wandAgent,
       this.executor,
-      this.toolsLayer,
       this.approvalService
     );
   }
@@ -67,7 +83,8 @@ export class PluginServices {
     this.settings = settings;
     this.llmProvider.updateSettings(settings);
     this.approvalService.updateSettings(settings);
-    this.chatController.updateSettings(settings);
+    // Note: ChatController no longer needs updateSettings
+    // Settings changes flow through the shared LLMProvider/ApprovalService
   }
 
   cleanup() {
