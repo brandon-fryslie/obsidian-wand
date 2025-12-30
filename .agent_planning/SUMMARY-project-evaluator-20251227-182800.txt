@@ -1,0 +1,47 @@
+Agent: project-evaluator | 2025-12-27-182800
+Scope: agent-abstraction/full
+Completion: Architecture tightly coupled | Gaps: 5 major coupling points | Test Quality: Partial unit coverage
+Reused: 0 findings | Fresh: Complete architecture analysis
+Cache updated: None (first evaluation of this topic)
+Ambiguities: 4 found (agent boundary, chaining, selection, LLM config)
+Workflow: CONTINUE
+
+Key Findings:
+- ChatController (929 lines) is monolithic - couples prompts, planning, approval, execution
+- LLMProvider already modular and swappable (good foundation)
+- No Agent interface or abstraction layer exists
+- Settings support LLM provider selection but not agent type selection
+- Hard-coded prompt strategy and planning workflow
+- No agent registry/factory pattern
+
+Critical Coupling Points:
+1. ChatController owns entire agent lifecycle (HIGH RISK)
+2. Settings lack agent selection (blocks UI for agent switching)
+3. Hard-coded system prompts (prevents different agent strategies)
+4. PlanGenerator assumes single workflow (placeholder resolution loop)
+5. No agent registry (cannot register/create agent types)
+
+Ambiguities Requiring User Input:
+1. Agent boundary - What's agent-specific vs shared infrastructure?
+2. Agent chaining - Should agents delegate to other agents?
+3. Agent selection - Manual dropdown or automatic routing?
+4. LLM per-agent - Shared provider or per-agent overrides?
+
+Recommended Approach (3-4 weeks):
+1. Define Agent interface (2-3 days, low risk)
+2. Extract WandAgent from ChatController (1 week, high risk)
+3. Add agent registry and settings UI (4-5 days)
+4. Implement second agent to validate (1 week)
+5. Documentation and migration (2-3 days)
+
+Risk Assessment: HIGH
+- Refactor touches core architecture
+- ChatController refactor is invasive
+- Requires careful incremental approach with feature flags
+- Needs integration tests before and during refactor
+
+Next Action: User should review 4 ambiguities and provide guidance on:
+- What constitutes the agent boundary
+- Whether agent chaining is needed
+- Manual vs automatic agent selection
+- Shared vs per-agent LLM configuration

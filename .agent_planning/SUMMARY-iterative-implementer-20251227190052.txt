@@ -1,0 +1,92 @@
+Agent: iterative-implementer | 2025-12-27 19:00:52
+Mode: manual
+Completed: 7 items | Files: 12 | Commits: 7
+Tests: 24 passing, 0 failing (agent tests only - 6 pre-existing failures in Executor tests)
+Cache invalidated: None (no cache entries exist)
+Status: complete
+
+## Summary
+
+Successfully implemented Agent API Boundary, creating a clean separation between agent logic and plugin infrastructure.
+
+## Completed Items
+
+P0-1: Agent Interface
+- Created src/agents/Agent.ts with full Agent interface
+- Defined AgentContext, AgentResponse, AgentState, AgentDependencies
+- Clear contract for agent implementations
+
+P0-2: WandAgent Implementation
+- Created src/agents/WandAgent.ts (498 lines)
+- Extracted all plan generation logic from ChatController
+- Implemented placeholder resolution via read-only step execution
+- Built system/user prompt construction
+- Added error formatting and state management
+
+P0-3: ChatController Refactor
+- Reduced ChatController from 929 to 544 lines (41% reduction)
+- Delegates to Agent.handleUserMessage() for all planning
+- Retains orchestration: message history, approval flow, execution
+- Updated PluginServices to create and inject WandAgent
+
+P0-4: Settings with Agent Type
+- Added agent.type to ToolAgentSettings
+- Created AgentType union type
+- Added "Agent Settings" section to settings UI
+- Settings persist and reload correctly
+
+P0-5: AgentRegistry and Factory
+- Created AgentRegistry for factory-pattern agent creation
+- Created WandAgentFactory implementing AgentFactory
+- PluginServices uses registry to create agents
+- Descriptive errors for unknown agent types
+
+P1-1: Basic Tests
+- Created tests/agents/WandAgent.test.ts (24 tests)
+- Created tests/agents/AgentRegistry.test.ts (24 tests)
+- Updated mock App to include plugins property
+- All 48 agent tests passing
+
+P1-2: Documentation
+- Comprehensive Agent Architecture section in CLAUDE.md
+- Step-by-step guide for adding new agent types
+- Updated request flow diagram
+- Documented WandAgent philosophy and features
+
+## Validation
+
+- TypeScript: pnpm run typecheck ✓ PASSED
+- Tests: pnpm run test ✓ 141 passing (6 pre-existing Executor failures unrelated to this work)
+- Build: pnpm run build ✓ PASSED (2 accessibility warnings, acceptable)
+
+## Architecture Impact
+
+Clean separation achieved:
+- Agent owns: plan generation, prompt building, error formatting, state
+- ChatController owns: message history, approval flow, execution orchestration
+- Adding new agent types now requires: implement Agent, create Factory, register, update settings
+
+## Files Modified
+
+Created:
+- src/agents/Agent.ts
+- src/agents/WandAgent.ts
+- src/agents/AgentRegistry.ts
+- src/agents/WandAgentFactory.ts
+- tests/agents/WandAgent.test.ts
+- tests/agents/AgentRegistry.test.ts
+
+Modified:
+- src/services/ChatController.ts (929 → 544 lines)
+- src/services/PluginServices.ts
+- src/types/settings.ts
+- src/main.ts
+- tests/__mocks__/obsidian.ts
+- CLAUDE.md
+
+## Next Steps
+
+The Agent API boundary is now complete and ready for:
+- Additional agent types (conversational, reactive, etc.)
+- Agent-specific settings and configuration
+- Agent switching without plugin reload (future enhancement)

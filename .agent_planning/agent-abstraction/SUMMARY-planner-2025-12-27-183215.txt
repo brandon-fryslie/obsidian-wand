@@ -1,0 +1,5 @@
+Agent: status-planner | 2025-12-27-183215
+Topic: agent-abstraction
+Files: PLAN-2025-12-27-183215.md, DOD-2025-12-27-183215.md
+Items: 8 (P0: 4, P1: 2, P2: 2)
+Sprint: 3 weeks, 3 deliverables (Agent interface, WandAgent extraction, Settings/Registry)
