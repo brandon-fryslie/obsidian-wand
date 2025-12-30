@@ -179,6 +179,38 @@ The original plan-based automation agent.
 - Thoughtful prompt engineering for knowledge management tasks
 - Risk-aware approval flow
 
+#### MiniAgent
+
+A direct, action-oriented agent inspired by mini-swe-agent.
+
+**Philosophy:**
+- Act quickly, iterate often
+- Single responsibility per request
+- Clear, direct tool execution
+- Conversational workflow
+
+**Features:**
+- Single-step execution with minimal planning overhead
+- Parses tool calls from markdown code blocks (JSON or function-style)
+- Returns single-step plans for quick execution
+- Best for simple, direct tasks and exploration
+
+**Action Format:**
+```markdown
+Let me list the files.
+
+\`\`\`tool
+{ "tool": "vault.listFiles", "args": { "folder": "/" } }
+\`\`\`
+```
+
+Or function syntax:
+```markdown
+\`\`\`tool
+vault.readFile({ "path": "notes/daily.md" })
+\`\`\`
+```
+
 ---
 
 ## Request Flow
