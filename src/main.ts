@@ -1,6 +1,6 @@
 import { App, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from "obsidian";
 import { ChatView, VIEW_TYPE_CHAT } from "./views/ChatView";
-import { ToolAgentSettings, DEFAULT_SETTINGS, READ_ONLY_TOOLS, SAFE_WRITE_TOOLS, DANGEROUS_TOOLS, ApprovalMode, AgentType } from "./types/settings";
+import { ToolAgentSettings, DEFAULT_SETTINGS, READ_ONLY_TOOLS, SAFE_WRITE_TOOLS, DANGEROUS_TOOLS, ApprovalMode, AgentType, ALL_TOOLS } from "./types/settings";
 import { PluginServices } from "./services/PluginServices";
 
 export default class ToolAgentPlugin extends Plugin {
@@ -27,12 +27,21 @@ export default class ToolAgentPlugin extends Plugin {
       this.activateView();
     });
 
-    // Add command palette entry
+    // Add command to open new chat tab
     this.addCommand({
       id: "open-wand",
-      name: "Open Wand",
+      name: "Open Wand Chat",
       callback: () => {
         this.activateView();
+      },
+    });
+
+    // Add command to open new chat tab (always creates a new tab)
+    this.addCommand({
+      id: "open-wand-new-tab",
+      name: "Open Wand Chat (New Tab)",
+      callback: () => {
+        this.activateView(true);
       },
     });
 
@@ -57,13 +66,18 @@ export default class ToolAgentPlugin extends Plugin {
     this.services?.updateSettings(this.settings);
   }
 
-  async activateView() {
+  /**
+   * Activate or create a chat view.
+   *
+   * @param forceNew - If true, always create a new tab. If false, reuse existing tab if available.
+   */
+  async activateView(forceNew: boolean = false) {
     const { workspace } = this.app;
 
     let leaf: WorkspaceLeaf | null = null;
     const leaves = workspace.getLeavesOfType(VIEW_TYPE_CHAT);
 
-    if (leaves.length > 0) {
+    if (!forceNew && leaves.length > 0) {
       // Activate existing leaf
       leaf = leaves[0];
     } else {
@@ -198,7 +212,7 @@ class ToolAgentSettingTab extends PluginSettingTab {
       // Text input for custom model names
       new Setting(containerEl)
         .setName("Model")
-        .setDesc("Enter the model name (e.g., claude-3-5-sonnet-20241022)")
+        .setDesc("Model to use (e.g., claude-3-5-sonnet-20241022)")
         .addText((text) =>
           text
             .setPlaceholder("claude-3-5-sonnet-20241022")
@@ -209,36 +223,29 @@ class ToolAgentSettingTab extends PluginSettingTab {
             })
         );
     } else {
-      // Dropdown for OpenAI
-      const modelOptions: Record<string, string> = {
-        "gpt-4": "GPT-4",
-        "gpt-4-turbo-preview": "GPT-4 Turbo",
-        "gpt-3.5-turbo": "GPT-3.5 Turbo"
-      };
-
+      // Dropdown for OpenAI models
       new Setting(containerEl)
         .setName("Model")
-        .setDesc("Choose the model to use")
-        .addDropdown((dropdown) => {
-          Object.entries(modelOptions).forEach(([value, label]) => {
-            dropdown.addOption(value, label);
-          });
-          return dropdown
+        .setDesc("Choose which OpenAI model to use")
+        .addDropdown((dropdown) =>
+          dropdown
+            .addOption("gpt-4-turbo-preview", "GPT-4 Turbo (Recommended)")
+            .addOption("gpt-4", "GPT-4")
+            .addOption("gpt-3.5-turbo", "GPT-3.5 Turbo")
             .setValue(this.plugin.settings.llm.model)
             .onChange(async (value) => {
               this.plugin.settings.llm.model = value;
               await this.plugin.saveSettings();
-            });
-        });
+            })
+        );
     }
 
-    // Temperature
     new Setting(containerEl)
       .setName("Temperature")
-      .setDesc("Controls randomness in responses (0.0 to 1.0)")
+      .setDesc("Higher = more creative, lower = more focused (0.0 - 2.0)")
       .addSlider((slider) =>
         slider
-          .setLimits(0, 1, 0.1)
+          .setLimits(0, 2, 0.1)
           .setValue(this.plugin.settings.llm.temperature)
           .setDynamicTooltip()
           .onChange(async (value) => {
@@ -247,10 +254,23 @@ class ToolAgentSettingTab extends PluginSettingTab {
           })
       );
 
-    // Streaming toggle
     new Setting(containerEl)
-      .setName("Enable Streaming")
-      .setDesc("Show responses as they are being generated")
+      .setName("Max Tokens")
+      .setDesc("Maximum length of generated responses")
+      .addSlider((slider) =>
+        slider
+          .setLimits(1000, 16000, 1000)
+          .setValue(this.plugin.settings.llm.maxTokens)
+          .setDynamicTooltip()
+          .onChange(async (value) => {
+            this.plugin.settings.llm.maxTokens = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Streaming")
+      .setDesc("Stream responses as they're generated")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.llm.streaming)
@@ -260,29 +280,27 @@ class ToolAgentSettingTab extends PluginSettingTab {
           })
       );
 
+    // Approval Settings
     containerEl.createEl("h2", { text: "Approval Settings" });
 
-    // Approval mode
     new Setting(containerEl)
-      .setName("Approval mode")
-      .setDesc("Controls when Wand asks for permission before executing actions")
+      .setName("Approval Mode")
+      .setDesc("How to handle plan approval")
       .addDropdown((dropdown) =>
         dropdown
-          .addOption("ask", "Ask (smart defaults)")
-          .addOption("yolo", "YOLO (approve everything)")
-          .addOption("paranoid", "Paranoid (ask for everything)")
+          .addOption("ask", "Smart (Ask for risky operations)")
+          .addOption("yolo", "YOLO (Auto-approve everything)")
+          .addOption("paranoid", "Paranoid (Ask for everything)")
           .setValue(this.plugin.settings.approval.mode)
           .onChange(async (value) => {
             this.plugin.settings.approval.mode = value as ApprovalMode;
             await this.plugin.saveSettings();
-            this.display(); // Refresh to show/hide relevant fields
           })
       );
 
-    // Session memory
     new Setting(containerEl)
-      .setName("Remember approvals for session")
-      .setDesc("Once you approve a tool, it stays approved until you reload the plugin")
+      .setName("Session Memory")
+      .setDesc("Remember approvals during session (approve once = approved for session)")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.approval.sessionMemory)
@@ -292,135 +310,50 @@ class ToolAgentSettingTab extends PluginSettingTab {
           })
       );
 
-    // Only show tool configuration in "ask" mode
-    if (this.plugin.settings.approval.mode === "ask") {
-      containerEl.createEl("h3", { text: "Tool Permissions" });
-      containerEl.createEl("p", {
-        text: "Configure which tools can run without asking. Read-only tools are safe and allowed by default.",
-        cls: "setting-item-description"
-      });
-
-      // Preset buttons
-      new Setting(containerEl)
-        .setName("Quick presets")
-        .setDesc("Quickly configure tool permissions")
-        .addButton((button) =>
-          button
-            .setButtonText("Allow Read-Only")
-            .onClick(async () => {
-              this.plugin.settings.approval.allowedTools = [...READ_ONLY_TOOLS];
-              await this.plugin.saveSettings();
-              this.display();
-            })
-        )
-        .addButton((button) =>
-          button
-            .setButtonText("Allow Safe Writes")
-            .onClick(async () => {
-              this.plugin.settings.approval.allowedTools = [...READ_ONLY_TOOLS, ...SAFE_WRITE_TOOLS];
-              await this.plugin.saveSettings();
-              this.display();
-            })
-        )
-        .addButton((button) =>
-          button
-            .setButtonText("Allow All")
-            .onClick(async () => {
-              this.plugin.settings.approval.allowedTools = [...READ_ONLY_TOOLS, ...SAFE_WRITE_TOOLS, ...DANGEROUS_TOOLS];
-              await this.plugin.saveSettings();
-              this.display();
-            })
-        );
-
-      // Group tools by category
-      const allTools = [
-        { category: "Read-Only (Safe)", tools: READ_ONLY_TOOLS, description: "These tools only read data and cannot modify your vault" },
-        { category: "Safe Writes", tools: SAFE_WRITE_TOOLS, description: "These tools create or modify files in controlled ways" },
-        { category: "Dangerous", tools: DANGEROUS_TOOLS, description: "These tools can delete files or run arbitrary commands" },
-      ];
-
-      for (const group of allTools) {
-        containerEl.createEl("h4", { text: group.category });
-        containerEl.createEl("p", {
-          text: group.description,
-          cls: "setting-item-description"
-        });
-
-        for (const tool of group.tools) {
-          const isAllowed = this.plugin.settings.approval.allowedTools.includes(tool);
-          const isDenied = this.plugin.settings.approval.deniedTools.includes(tool);
-
-          new Setting(containerEl)
-            .setName(tool)
-            .setDesc(this.getToolDescription(tool))
-            .addDropdown((dropdown) =>
-              dropdown
-                .addOption("ask", "Ask")
-                .addOption("allow", "Always allow")
-                .addOption("deny", "Always deny")
-                .setValue(isDenied ? "deny" : isAllowed ? "allow" : "ask")
-                .onChange(async (value) => {
-                  // Remove from both lists first
-                  this.plugin.settings.approval.allowedTools =
-                    this.plugin.settings.approval.allowedTools.filter(t => t !== tool);
-                  this.plugin.settings.approval.deniedTools =
-                    this.plugin.settings.approval.deniedTools.filter(t => t !== tool);
-
-                  // Add to appropriate list
-                  if (value === "allow") {
-                    this.plugin.settings.approval.allowedTools.push(tool);
-                  } else if (value === "deny") {
-                    this.plugin.settings.approval.deniedTools.push(tool);
-                  }
-
-                  await this.plugin.saveSettings();
-                })
-            );
-        }
-      }
-
-      // Allowed paths
-      containerEl.createEl("h3", { text: "Allowed Paths" });
-      new Setting(containerEl)
-        .setName("Auto-approve paths")
-        .setDesc("Glob patterns for paths where writes are automatically approved (one per line)")
-        .addTextArea((text) =>
-          text
-            .setPlaceholder("Daily Notes/*\nTemplates/*")
-            .setValue(this.plugin.settings.approval.allowedPaths.join("\n"))
-            .onChange(async (value) => {
-              this.plugin.settings.approval.allowedPaths = value
-                .split("\n")
-                .map(p => p.trim())
-                .filter(p => p.length > 0);
-              await this.plugin.saveSettings();
-            })
-        );
-    }
-
+    // Chat Settings
     containerEl.createEl("h2", { text: "Chat Settings" });
 
-    // Max conversation history
     new Setting(containerEl)
-      .setName("Max conversation history")
-      .setDesc("Maximum number of messages to keep in memory (0 for unlimited)")
-      .addText((text) =>
-        text
-          .setPlaceholder("50")
-          .setValue(String(this.plugin.settings.chat.maxHistory))
+      .setName("Max History")
+      .setDesc("Number of messages to keep in history")
+      .addSlider((slider) =>
+        slider
+          .setLimits(10, 200, 10)
+          .setValue(this.plugin.settings.chat.maxHistory)
+          .setDynamicTooltip()
           .onChange(async (value) => {
-            const num = parseInt(value);
-            if (!isNaN(num) && num >= 0) {
-              this.plugin.settings.chat.maxHistory = num;
-              await this.plugin.saveSettings();
-            }
+            this.plugin.settings.chat.maxHistory = value;
+            await this.plugin.saveSettings();
           })
       );
 
-    // Persist conversation history
     new Setting(containerEl)
-      .setName("Persist conversation history")
-      .setDesc("Save conversation across Obsidian restarts")
+      .setName("Show Thinking")
+      .setDesc("Display agent's reasoning process")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.chat.showThinking)
+          .onChange(async (value) => {
+            this.plugin.settings.chat.showThinking = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Auto-Save Plans")
+      .setDesc("Automatically save executed plans")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.chat.autoSavePlans)
+          .onChange(async (value) => {
+            this.plugin.settings.chat.autoSavePlans = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Persist History")
+      .setDesc("Save chat history between sessions")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.chat.persistHistory)
@@ -429,32 +362,169 @@ class ToolAgentSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+    // UI Settings
+    containerEl.createEl("h2", { text: "UI Settings" });
+
+    new Setting(containerEl)
+      .setName("Theme")
+      .setDesc("Choose the chat interface theme")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("obsidian", "Match Obsidian")
+          .addOption("light", "Light")
+          .addOption("dark", "Dark")
+          .setValue(this.plugin.settings.ui.theme)
+          .onChange(async (value) => {
+            this.plugin.settings.ui.theme = value as "light" | "dark" | "obsidian";
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Font Size")
+      .setDesc("Chat text size")
+      .addSlider((slider) =>
+        slider
+          .setLimits(10, 24, 1)
+          .setValue(this.plugin.settings.ui.fontSize)
+          .setDynamicTooltip()
+          .onChange(async (value) => {
+            this.plugin.settings.ui.fontSize = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Show Ribbon Icon")
+      .setDesc("Display Wand icon in the sidebar")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.ui.showRibbonIcon)
+          .onChange(async (value) => {
+            this.plugin.settings.ui.showRibbonIcon = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    // Per-Agent Configuration Section
+    containerEl.createEl("h2", { text: "Per-Agent Configuration" });
+    containerEl.createEl("p", {
+      text: "Configure tools and LLM settings for each agent type.",
+      cls: "setting-item-description",
+    });
+
+    this.displayAgentConfig(containerEl, "wand");
   }
 
-  private getToolDescription(tool: string): string {
-    const descriptions: Record<string, string> = {
-      // Read-only
-      "vault.readFile": "Read file contents",
-      "vault.searchText": "Search for text across files",
-      "vault.listFiles": "List files in a folder",
-      "editor.getSelection": "Get current text selection",
-      "editor.getActiveFilePath": "Get path of active file",
-      "workspace.getContext": "Get workspace context",
-      "commands.list": "List available commands",
-      "util.parseMarkdownBullets": "Parse markdown bullet lists",
-      "util.slugifyTitle": "Convert title to filename",
-      // Safe writes
-      "vault.ensureFolder": "Create folder if it doesn't exist",
-      "vault.createFile": "Create a new file",
-      "workspace.openFile": "Open a file in the editor",
-      "editor.insertAtCursor": "Insert text at cursor",
-      // Dangerous
-      "vault.delete": "Delete files or folders",
-      "vault.rename": "Rename files or folders",
-      "vault.writeFile": "Overwrite existing files",
-      "editor.replaceSelection": "Replace selected text",
-      "commands.run": "Execute Obsidian commands",
+  private displayAgentConfig(containerEl: HTMLElement, agentType: string) {
+    const agentConfig = this.plugin.settings.agent.configs?.[agentType] || {
+      tools: [...ALL_TOOLS],
     };
-    return descriptions[tool] || tool;
+
+    // Ensure config exists
+    if (!this.plugin.settings.agent.configs) {
+      this.plugin.settings.agent.configs = {};
+    }
+    if (!this.plugin.settings.agent.configs[agentType]) {
+      this.plugin.settings.agent.configs[agentType] = agentConfig;
+    }
+
+    // Agent-specific tools section
+    const toolsContainer = containerEl.createDiv({ cls: "agent-config-section" });
+    toolsContainer.createEl("h3", { text: `${agentType} - Tools` });
+    toolsContainer.createEl("p", {
+      text: "Select which tools this agent can use:",
+      cls: "setting-item-description",
+    });
+
+    // Tool categories
+    const categories = [
+      { name: "Read-Only Tools", tools: READ_ONLY_TOOLS, desc: "Safe information gathering" },
+      { name: "Safe Write Tools", tools: SAFE_WRITE_TOOLS, desc: "Create content without risk" },
+      { name: "Dangerous Tools", tools: DANGEROUS_TOOLS, desc: "Modify or delete content" },
+    ];
+
+    categories.forEach(({ name, tools, desc }) => {
+      const categoryHeader = toolsContainer.createEl("h4", { text: name });
+      categoryHeader.createEl("span", {
+        text: ` - ${desc}`,
+        cls: "setting-item-description",
+      });
+
+      tools.forEach((tool) => {
+        new Setting(toolsContainer)
+          .setName(tool)
+          .addToggle((toggle) =>
+            toggle
+              .setValue(agentConfig.tools.includes(tool))
+              .onChange(async (value) => {
+                const config = this.plugin.settings.agent.configs![agentType];
+                if (value) {
+                  if (!config.tools.includes(tool)) {
+                    config.tools.push(tool);
+                  }
+                } else {
+                  config.tools = config.tools.filter((t) => t !== tool);
+                }
+                await this.plugin.saveSettings();
+              })
+          );
+      });
+    });
+
+    // Agent-specific LLM override section
+    const llmContainer = containerEl.createDiv({ cls: "agent-config-section" });
+    llmContainer.createEl("h3", { text: `${agentType} - LLM Override (Optional)` });
+    llmContainer.createEl("p", {
+      text: "Override global LLM settings for this agent. Leave empty to use global settings.",
+      cls: "setting-item-description",
+    });
+
+    new Setting(llmContainer)
+      .setName("Override Provider")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("", "Use Global")
+          .addOption("openai", "OpenAI")
+          .addOption("anthropic", "Anthropic")
+          .addOption("custom", "Custom")
+          .setValue(agentConfig.llm?.provider || "")
+          .onChange(async (value) => {
+            const config = this.plugin.settings.agent.configs![agentType];
+            if (!config.llm) config.llm = {};
+            config.llm.provider = value as any;
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(llmContainer)
+      .setName("Override Model")
+      .addText((text) =>
+        text
+          .setPlaceholder("Leave empty to use global")
+          .setValue(agentConfig.llm?.model || "")
+          .onChange(async (value) => {
+            const config = this.plugin.settings.agent.configs![agentType];
+            if (!config.llm) config.llm = {};
+            config.llm.model = value || undefined;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(llmContainer)
+      .setName("Override Temperature")
+      .addSlider((slider) =>
+        slider
+          .setLimits(0, 2, 0.1)
+          .setValue(agentConfig.llm?.temperature ?? this.plugin.settings.llm.temperature)
+          .setDynamicTooltip()
+          .onChange(async (value) => {
+            const config = this.plugin.settings.agent.configs![agentType];
+            if (!config.llm) config.llm = {};
+            config.llm.temperature = value;
+            await this.plugin.saveSettings();
+          })
+      );
   }
 }

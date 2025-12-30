@@ -10,7 +10,7 @@ import { PlanStore } from "./PlanStore";
 import { PlanGenerator } from "./PlanGenerator";
 import { ExecutionManager } from "./ExecutionManager";
 import { TemplateStore } from "./TemplateStore";
-import { AgentDependencies } from "../agents/Agent";
+import { Agent, AgentDependencies } from "../agents/Agent";
 import { AgentRegistry } from "../agents/AgentRegistry";
 import { WandAgentFactory } from "../agents/WandAgentFactory";
 
@@ -27,8 +27,10 @@ export class PluginServices {
   public readonly templateStore: TemplateStore;
   public readonly agentRegistry: AgentRegistry;
   public settings: ToolAgentSettings;
+  private app: App;
 
   constructor(app: App, settings: ToolAgentSettings) {
+    this.app = app;
     this.settings = settings;
 
     // Initialize in dependency order
@@ -56,10 +58,10 @@ export class PluginServices {
     this.agentRegistry = new AgentRegistry();
     this.agentRegistry.register("wand", new WandAgentFactory());
 
-    // Create agent from registry
-    const agent = this.createAgent(app, settings.agent.type);
+    // Create default agent from registry
+    const agent = this.createAgent(settings.agent.type);
 
-    // Create ChatController with agent
+    // Create ChatController with agent (for backward compatibility)
     this.chatController = new ChatController(
       app,
       agent,
@@ -69,10 +71,21 @@ export class PluginServices {
   }
 
   /**
+   * Create an agent instance for a view.
+   * Each view gets its own agent instance, allowing multiple independent tabs.
+   *
+   * @param agentType - The type of agent to create
+   * @returns A new agent instance
+   */
+  createAgentForView(agentType: string): Agent {
+    return this.createAgent(agentType);
+  }
+
+  /**
    * Create an agent instance with merged configuration.
    * Supports per-agent LLM overrides.
    */
-  private createAgent(app: App, agentType: string) {
+  private createAgent(agentType: string): Agent {
     // Get agent-specific config (create default if missing)
     const agentConfig = this.getAgentConfig(agentType);
 
@@ -81,7 +94,7 @@ export class PluginServices {
 
     // Create agent dependencies
     const agentDeps: AgentDependencies = {
-      app,
+      app: this.app,
       settings: this.settings,
       agentConfig,
       llmProvider,
