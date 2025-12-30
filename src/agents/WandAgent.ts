@@ -52,6 +52,10 @@ export class WandAgent implements Agent {
     this.stateChangeCallbacks.push(callback);
   }
 
+  getConfiguredTools(): string[] {
+    return this.deps.agentConfig.tools;
+  }
+
   abort(): void {
     this.deps.llmProvider.abort();
     this.updateState({ status: "idle" });
@@ -332,6 +336,9 @@ Generate the complete action plan as JSON.`;
    * Build the system prompt that defines Wand's behavior
    */
   private buildSystemPrompt(): string {
+    const configuredTools = this.getConfiguredTools();
+    const toolsSection = this.buildToolsSection(configuredTools);
+
     return `You are Wand, an intelligent Obsidian automation assistant. You help users manage their knowledge base with thoughtfulness, precision, and genuine helpfulness.
 
 ## Your Core Philosophy
@@ -366,34 +373,7 @@ Generate the complete action plan as JSON.`;
 - Choose the most useful interpretation
 - Explain what you're doing and why in the preview field
 
-## Available Tools
-
-**Information Gathering (always safe, use freely):**
-- vault.listFiles: List files in a folder (use recursive=true to see everything)
-- vault.readFile: Read a file's content - USE THIS to understand context
-- vault.searchText: Search for text patterns across the vault
-- editor.getSelection: Get currently selected text
-- editor.getActiveFilePath: Get the current file path
-- workspace.getContext: Get workspace state
-
-**Content Creation:**
-- vault.ensureFolder: Create a folder structure
-- vault.createFile: Create a new file with content (safe for new files)
-- editor.insertAtCursor: Add text at cursor position
-
-**Content Modification (use thoughtfully):**
-- vault.writeFile: Overwrite file contents (careful - replaces everything)
-- editor.replaceSelection: Replace selected text
-- vault.rename: Rename or move a file
-
-**Potentially Destructive:**
-- vault.delete: Remove a file or folder permanently
-
-**Utilities:**
-- commands.list: List available Obsidian commands
-- commands.run: Execute an Obsidian command by ID
-- util.parseMarkdownBullets: Parse bullet list to array
-- util.slugifyTitle: Convert text to filename-safe slug
+${toolsSection}
 
 ## Response Format
 
@@ -431,6 +411,85 @@ GOOD approach:
 4. THEN propose intelligent tags based on actual content and existing taxonomy
 
 Remember: You're not just executing commands - you're thoughtfully helping someone manage their knowledge. Take the time to understand the context, and your actions will be genuinely useful.`;
+  }
+
+  /**
+   * Build the tools section of the system prompt based on configured tools
+   */
+  private buildToolsSection(configuredTools: string[]): string {
+    // Categorize configured tools
+    const readTools: string[] = [];
+    const writeTools: string[] = [];
+    const dangerousTools: string[] = [];
+    const utilityTools: string[] = [];
+    const pluginTools: string[] = [];
+
+    const readOnlyPatterns = ["readFile", "listFiles", "searchText", "getSelection", "getActiveFilePath", "getContext", "commands.list"];
+    const safeWritePatterns = ["ensureFolder", "createFile", "openFile", "insertAtCursor"];
+    const dangerousPatterns = ["delete", "rename", "writeFile", "replaceSelection", "commands.run"];
+    const utilityPatterns = ["util."];
+    const pluginPatterns = ["dataview.", "templater.", "tasks.", "advancedtables.", "excalidraw."];
+
+    for (const tool of configuredTools) {
+      if (utilityPatterns.some(p => tool.includes(p))) {
+        utilityTools.push(tool);
+      } else if (pluginPatterns.some(p => tool.includes(p))) {
+        pluginTools.push(tool);
+      } else if (readOnlyPatterns.some(p => tool.includes(p))) {
+        readTools.push(tool);
+      } else if (dangerousPatterns.some(p => tool.includes(p))) {
+        dangerousTools.push(tool);
+      } else if (safeWritePatterns.some(p => tool.includes(p))) {
+        writeTools.push(tool);
+      } else {
+        // Default to read if unsure
+        readTools.push(tool);
+      }
+    }
+
+    let section = "## Available Tools\n\n";
+
+    if (readTools.length > 0) {
+      section += "**Information Gathering (always safe, use freely):**\n";
+      readTools.forEach(tool => {
+        section += `- ${tool}\n`;
+      });
+      section += "\n";
+    }
+
+    if (writeTools.length > 0) {
+      section += "**Content Creation:**\n";
+      writeTools.forEach(tool => {
+        section += `- ${tool}\n`;
+      });
+      section += "\n";
+    }
+
+    if (dangerousTools.length > 0) {
+      section += "**Content Modification (use thoughtfully):**\n";
+      dangerousTools.forEach(tool => {
+        section += `- ${tool}\n`;
+      });
+      section += "\n";
+    }
+
+    if (utilityTools.length > 0) {
+      section += "**Utilities:**\n";
+      utilityTools.forEach(tool => {
+        section += `- ${tool}\n`;
+      });
+      section += "\n";
+    }
+
+    if (pluginTools.length > 0) {
+      section += "**Plugin Integrations:**\n";
+      pluginTools.forEach(tool => {
+        section += `- ${tool}\n`;
+      });
+      section += "\n";
+    }
+
+    return section;
   }
 
   /**

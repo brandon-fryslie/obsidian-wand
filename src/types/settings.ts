@@ -2,12 +2,33 @@ export type ApprovalMode = "ask" | "yolo" | "paranoid";
 
 export type AgentType = "wand";
 
+export type LLMProvider = "openai" | "anthropic" | "custom";
+
+/**
+ * Per-agent configuration for tools and LLM settings.
+ * Each agent type can have its own tool set and optionally override global LLM settings.
+ */
+export interface AgentConfig {
+  /** Which tools this agent can use */
+  tools: string[];
+  /** Optional LLM configuration override (inherits global if not set) */
+  llm?: {
+    provider?: LLMProvider;
+    model?: string;
+    temperature?: number;
+  };
+}
+
 export interface ToolAgentSettings {
   agent: {
     type: AgentType;
+    /** Per-agent configuration (tools and LLM overrides) */
+    configs: {
+      [agentType: string]: AgentConfig;
+    };
   };
   llm: {
-    provider: "openai" | "anthropic" | "custom";
+    provider: LLMProvider;
     /** @deprecated Use provider-specific keys instead */
     apiKey: string;
     openaiApiKey?: string;
@@ -75,9 +96,45 @@ export const DANGEROUS_TOOLS = [
   "commands.run",
 ];
 
+// All available tools
+export const ALL_TOOLS = [
+  ...READ_ONLY_TOOLS,
+  ...SAFE_WRITE_TOOLS,
+  ...DANGEROUS_TOOLS,
+  // Plugin-specific tools
+  "dataview.query",
+  "dataview.pages",
+  "dataview.tasks",
+  "dataview.status",
+  "templater.status",
+  "templater.run",
+  "templater.insert",
+  "templater.create",
+  "tasks.status",
+  "tasks.create",
+  "tasks.edit",
+  "tasks.toggle",
+  "advancedtables.status",
+  "advancedtables.format",
+  "advancedtables.insertRow",
+  "advancedtables.insertColumn",
+  "advancedtables.sort",
+  "advancedtables.align",
+  "excalidraw.status",
+  "excalidraw.create",
+  "excalidraw.exportSVG",
+  "excalidraw.exportPNG",
+];
+
 export const DEFAULT_SETTINGS: ToolAgentSettings = {
   agent: {
     type: "wand",
+    configs: {
+      // WandAgent gets all tools by default
+      wand: {
+        tools: [...ALL_TOOLS],
+      },
+    },
   },
   llm: {
     provider: "openai",

@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import { ToolAgentSettings } from "../types/settings";
+import { ToolAgentSettings, AgentConfig } from "../types/settings";
 import { ChatController } from "./ChatController";
 import { Executor } from "./Executor";
 import { ToolsLayer } from "./ToolsLayer";
@@ -56,18 +56,8 @@ export class PluginServices {
     this.agentRegistry = new AgentRegistry();
     this.agentRegistry.register("wand", new WandAgentFactory());
 
-    // Create agent dependencies
-    const agentDeps: AgentDependencies = {
-      app,
-      settings,
-      llmProvider: this.llmProvider,
-      executor: this.executor,
-      toolsLayer: this.toolsLayer,
-      approvalService: this.approvalService,
-    };
-
     // Create agent from registry
-    const agent = this.agentRegistry.create(settings.agent.type, agentDeps);
+    const agent = this.createAgent(app, settings.agent.type);
 
     // Create ChatController with agent
     this.chatController = new ChatController(
@@ -76,6 +66,72 @@ export class PluginServices {
       this.executor,
       this.approvalService
     );
+  }
+
+  /**
+   * Create an agent instance with merged configuration.
+   * Supports per-agent LLM overrides.
+   */
+  private createAgent(app: App, agentType: string) {
+    // Get agent-specific config (create default if missing)
+    const agentConfig = this.getAgentConfig(agentType);
+
+    // Create LLM provider with merged settings (per-agent override + global)
+    const llmProvider = this.createLLMProvider(agentConfig);
+
+    // Create agent dependencies
+    const agentDeps: AgentDependencies = {
+      app,
+      settings: this.settings,
+      agentConfig,
+      llmProvider,
+      executor: this.executor,
+      toolsLayer: this.toolsLayer,
+      approvalService: this.approvalService,
+    };
+
+    // Create agent from registry
+    return this.agentRegistry.create(agentType, agentDeps);
+  }
+
+  /**
+   * Get agent configuration, creating default if missing.
+   */
+  private getAgentConfig(agentType: string): AgentConfig {
+    if (!this.settings.agent.configs) {
+      this.settings.agent.configs = {};
+    }
+
+    if (!this.settings.agent.configs[agentType]) {
+      // Create default config for this agent type
+      this.settings.agent.configs[agentType] = {
+        tools: [], // Will be populated by agent factory defaults
+      };
+    }
+
+    return this.settings.agent.configs[agentType];
+  }
+
+  /**
+   * Create LLM provider with merged settings (agent override + global).
+   */
+  private createLLMProvider(agentConfig: AgentConfig): LLMProvider {
+    // If agent has LLM overrides, merge with global settings
+    if (agentConfig.llm) {
+      const mergedSettings = {
+        ...this.settings,
+        llm: {
+          ...this.settings.llm,
+          ...(agentConfig.llm.provider && { provider: agentConfig.llm.provider }),
+          ...(agentConfig.llm.model && { model: agentConfig.llm.model }),
+          ...(agentConfig.llm.temperature !== undefined && { temperature: agentConfig.llm.temperature }),
+        },
+      };
+      return new LLMProvider(mergedSettings);
+    }
+
+    // No override, use shared global provider
+    return this.llmProvider;
   }
 
   async initialize() {

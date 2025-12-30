@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import { ToolAgentSettings } from "../types/settings";
+import { ToolAgentSettings, AgentConfig } from "../types/settings";
 import { ActionPlan } from "../types/ActionPlan";
 import { LLMProvider } from "../services/LLMProvider";
 import { Executor } from "../services/Executor";
@@ -56,6 +56,8 @@ export interface AgentDependencies {
   app: App;
   /** Plugin settings */
   settings: ToolAgentSettings;
+  /** Agent-specific configuration (tools and LLM overrides) */
+  agentConfig: AgentConfig;
   /** LLM provider for generating plans and responses */
   llmProvider: LLMProvider;
   /** Executor for running action plans */
@@ -135,4 +137,10 @@ export interface Agent {
    * @param callback - Function to call when state changes
    */
   onStateChange(callback: (state: AgentState) => void): void;
+
+  /**
+   * Get the list of tools configured for this agent.
+   * @returns Array of tool names this agent can use
+   */
+  getConfiguredTools(): string[];
 }

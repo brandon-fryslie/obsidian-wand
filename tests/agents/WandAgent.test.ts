@@ -1,7 +1,7 @@
 import { WandAgent } from "../../src/agents/WandAgent";
 import { AgentDependencies, AgentContext } from "../../src/agents/Agent";
 import { App } from "obsidian";
-import { DEFAULT_SETTINGS } from "../../src/types/settings";
+import { DEFAULT_SETTINGS, ALL_TOOLS } from "../../src/types/settings";
 import { LLMProvider } from "../../src/services/LLMProvider";
 import { Executor } from "../../src/services/Executor";
 import { ToolsLayer } from "../../src/services/ToolsLayer";
@@ -26,6 +26,9 @@ describe("WandAgent", () => {
     deps = {
       app: mockApp,
       settings: DEFAULT_SETTINGS,
+      agentConfig: {
+        tools: [...ALL_TOOLS], // WandAgent gets all tools
+      },
       llmProvider,
       executor,
       toolsLayer,
@@ -53,6 +56,11 @@ describe("WandAgent", () => {
       expect(state.status).toBe("idle");
       expect(state.currentPlan).toBeUndefined();
       expect(state.lastError).toBeUndefined();
+    });
+
+    it("should return configured tools", () => {
+      const tools = agent.getConfiguredTools();
+      expect(tools).toEqual(ALL_TOOLS);
     });
   });
 

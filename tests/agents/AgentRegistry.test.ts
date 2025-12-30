@@ -1,7 +1,7 @@
 import { AgentRegistry } from "../../src/agents/AgentRegistry";
 import { WandAgentFactory } from "../../src/agents/WandAgentFactory";
 import { AgentDependencies } from "../../src/agents/Agent";
-import { DEFAULT_SETTINGS } from "../../src/types/settings";
+import { DEFAULT_SETTINGS, ALL_TOOLS } from "../../src/types/settings";
 import { LLMProvider } from "../../src/services/LLMProvider";
 import { Executor } from "../../src/services/Executor";
 import { ToolsLayer } from "../../src/services/ToolsLayer";
@@ -25,6 +25,9 @@ describe("AgentRegistry", () => {
     deps = {
       app: mockApp,
       settings: DEFAULT_SETTINGS,
+      agentConfig: {
+        tools: [...ALL_TOOLS],
+      },
       llmProvider,
       executor,
       toolsLayer,
