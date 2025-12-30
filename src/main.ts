@@ -115,6 +115,7 @@ class ToolAgentSettingTab extends PluginSettingTab {
       .addDropdown((dropdown) =>
         dropdown
           .addOption("wand", "Wand Agent - Plan-based automation")
+          .addOption("mini", "Mini Agent - Direct action execution")
           .setValue(this.plugin.settings.agent.type)
           .onChange(async (value) => {
             this.plugin.settings.agent.type = value as AgentType;

@@ -1,6 +1,6 @@
 export type ApprovalMode = "ask" | "yolo" | "paranoid";
 
-export type AgentType = "wand";
+export type AgentType = "wand" | "mini";
 
 export type LLMProvider = "openai" | "anthropic" | "custom";
 
@@ -132,6 +132,10 @@ export const DEFAULT_SETTINGS: ToolAgentSettings = {
     configs: {
       // WandAgent gets all tools by default
       wand: {
+        tools: [...ALL_TOOLS],
+      },
+      // MiniAgent gets all tools by default (direct action agent)
+      mini: {
         tools: [...ALL_TOOLS],
       },
     },
