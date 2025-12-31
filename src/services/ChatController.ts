@@ -4,7 +4,7 @@ import { ActionPlan, ExecutionContext } from "../types/ActionPlan";
 import { Executor, ExecutionProgress, ExecutionLogEntry } from "./Executor";
 import { PlanValidator, PlanSummary, ValidationWarning } from "./PlanValidator";
 import { ApprovalService, ApprovalDecision } from "./ApprovalService";
-import { Agent, AgentContext } from "../agents/Agent";
+import { Agent, AgentContext, TokenUsage } from "../agents/Agent";
 
 export type { ExecutionLogEntry };
 
@@ -16,6 +16,7 @@ export interface ChatMessage {
   plan?: ActionPlan;
   executionResults?: any[];
   thinking?: string; // Extended thinking content from Claude
+  usage?: TokenUsage; // Token usage statistics
 }
 
 export interface StepApprovalStatus {
@@ -151,6 +152,7 @@ export class ChatController {
           content: response.message || "I processed your request.",
           timestamp: new Date(),
           thinking: response.thinking,
+          usage: response.usage,
         };
 
         this.updateState({

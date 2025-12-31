@@ -6,6 +6,7 @@
   import MessageList from "./MessageList.svelte";
   import PlanPreview from "./PlanPreview.svelte";
   import ExecutionProgress from "./ExecutionProgress.svelte";
+  import ContextUsage from "./ContextUsage.svelte";
 
   export let app: App;
   export let services: PluginServices;
@@ -290,6 +291,9 @@
     <span class="title">Wand</span>
     <button class="clear-btn" on:click={clearChat} title="Clear conversation (Ctrl+L)">Clear</button>
   </div>
+
+  <!-- Context Usage -->
+  <ContextUsage messages={state.messages} model={services.settings.llm.model} />
 
   <!-- Selection indicator -->
   {#if showSelectionIndicator}
