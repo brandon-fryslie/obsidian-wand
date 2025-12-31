@@ -5,19 +5,12 @@
   $: failureCount = results.length - successCount;
 
   // Track which results are expanded (all collapsed by default)
-  let expandedResults = new Set<string>();
+  // Use an object instead of Set for proper Svelte reactivity
+  let expandedResults: Record<string, boolean> = {};
 
   function toggleResult(stepId: string) {
-    if (expandedResults.has(stepId)) {
-      expandedResults.delete(stepId);
-    } else {
-      expandedResults.add(stepId);
-    }
+    expandedResults[stepId] = !expandedResults[stepId];
     expandedResults = expandedResults; // trigger reactivity
-  }
-
-  function isExpanded(stepId: string): boolean {
-    return expandedResults.has(stepId);
   }
 </script>
 
@@ -36,13 +29,13 @@
     {#each results as result}
       <div class="result-item" class:success={result.success} class:failure={!result.success}>
         <button class="result-step" on:click={() => toggleResult(result.stepId)}>
-          <span class="expand-icon">{isExpanded(result.stepId) ? '▼' : '▶'}</span>
+          <span class="expand-icon">{expandedResults[result.stepId] ? '▼' : '▶'}</span>
           <strong>{result.stepId}</strong>
           <span class="result-status">{result.success ? '✓' : '✗'}</span>
           <span class="result-duration">{result.duration}ms</span>
         </button>
 
-        {#if isExpanded(result.stepId)}
+        {#if expandedResults[result.stepId]}
           {#if result.success}
             <div class="result-success">
               {#if result.result}

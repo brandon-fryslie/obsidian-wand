@@ -6,15 +6,21 @@
   export let message: ChatMessage;
 
   let visible = false;
+  let thinkingExpanded = false;
 
   $: isUser = message.role === "user";
   $: isSystem = message.role === "system";
   $: showResults = message.executionResults && message.executionResults.length > 0;
+  $: hasThinking = message.thinking && message.thinking.length > 0;
 
   onMount(() => {
     // Trigger fade-in animation
     setTimeout(() => visible = true, 10);
   });
+
+  function toggleThinking() {
+    thinkingExpanded = !thinkingExpanded;
+  }
 
   // Simple markdown to HTML conversion
   function parseMarkdown(text: string): string {
@@ -78,6 +84,19 @@
     <span class="role">{isUser ? 'You' : 'Wand'}</span>
     <span class="time">{message.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
   </div>
+  {#if hasThinking}
+    <div class="thinking-block">
+      <button class="thinking-toggle" on:click={toggleThinking}>
+        <span class="thinking-icon">{thinkingExpanded ? '▼' : '▶'}</span>
+        <span class="thinking-label">Thinking...</span>
+      </button>
+      {#if thinkingExpanded}
+        <div class="thinking-content">
+          {message.thinking}
+        </div>
+      {/if}
+    </div>
+  {/if}
   <div class="content">{@html renderedContent}</div>
   {#if showResults}
     <ExecutionResults results={message.executionResults} />
@@ -162,5 +181,52 @@
     border-radius: 3px;
     font-family: var(--font-monospace);
     font-size: 0.9em;
+  }
+
+  .thinking-block {
+    margin-bottom: 8px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background-color: var(--background-secondary);
+    overflow: hidden;
+  }
+
+  .thinking-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 6px 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 12px;
+    text-align: left;
+  }
+
+  .thinking-toggle:hover {
+    background-color: var(--background-modifier-hover);
+  }
+
+  .thinking-icon {
+    font-size: 10px;
+    width: 12px;
+    flex-shrink: 0;
+  }
+
+  .thinking-label {
+    font-style: italic;
+  }
+
+  .thinking-content {
+    padding: 10px;
+    border-top: 1px solid var(--background-modifier-border);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    white-space: pre-wrap;
+    max-height: 300px;
+    overflow-y: auto;
   }
 </style>

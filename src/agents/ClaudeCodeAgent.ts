@@ -129,6 +129,7 @@ export class ClaudeCodeAgent implements Agent {
 
       // Consume the query generator to get results
       let finalMessage = "";
+      let thinkingContent = "";
       for await (const event of queryGenerator) {
         // Log events for debugging
         console.log("[ClaudeCode] Event:", event.type, JSON.stringify(event, null, 2).slice(0, 500));
@@ -144,9 +145,13 @@ export class ClaudeCodeAgent implements Agent {
           }
         }
 
-        // Extract final message from assistant messages
+        // Extract thinking and final message from assistant messages
         if (event.type === "assistant" && event.message?.content) {
           for (const block of event.message.content) {
+            if (block.type === "thinking") {
+              thinkingContent = block.thinking;
+              console.log("[ClaudeCode] Found thinking:", block.thinking.slice(0, 200));
+            }
             if (block.type === "text") {
               finalMessage = block.text;
               console.log("[ClaudeCode] Found text:", block.text.slice(0, 200));
@@ -157,12 +162,16 @@ export class ClaudeCodeAgent implements Agent {
 
       console.log("[ClaudeCode] Query completed successfully");
       console.log("[ClaudeCode] Final message:", finalMessage);
+      if (thinkingContent) {
+        console.log("[ClaudeCode] Thinking captured:", thinkingContent.length, "chars");
+      }
 
       this.updateState({ status: "idle" });
 
       return {
         type: "message",
         message: finalMessage || "Task completed.",
+        thinking: thinkingContent || undefined,
       };
     } catch (error) {
       const errorMsg = this.formatError(error);

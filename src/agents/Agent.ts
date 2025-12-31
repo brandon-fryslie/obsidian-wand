@@ -32,6 +32,8 @@ export interface AgentResponse {
   message?: string;
   /** Error message (when type is "error") */
   error?: string;
+  /** Extended thinking content from Claude (optional) */
+  thinking?: string;
 }
 
 /**

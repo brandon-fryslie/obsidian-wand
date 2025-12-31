@@ -15,6 +15,7 @@ export interface ChatMessage {
   timestamp: Date;
   plan?: ActionPlan;
   executionResults?: any[];
+  thinking?: string; // Extended thinking content from Claude
 }
 
 export interface StepApprovalStatus {
@@ -149,6 +150,7 @@ export class ChatController {
           role: "assistant",
           content: response.message || "I processed your request.",
           timestamp: new Date(),
+          thinking: response.thinking,
         };
 
         this.updateState({
