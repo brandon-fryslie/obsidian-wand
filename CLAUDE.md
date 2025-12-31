@@ -213,7 +213,7 @@ vault.readFile({ "path": "notes/daily.md" })
 
 #### ClaudeCodeAgent
 
-Full Claude Code agent powered by the Claude Agent SDK, operating on Obsidian vaults.
+Full Claude Code agent powered by the official Claude Agent SDK, operating on Obsidian vaults.
 
 **Philosophy:**
 - Same autonomous agent loop as Claude Code CLI
@@ -223,6 +223,7 @@ Full Claude Code agent powered by the Claude Agent SDK, operating on Obsidian va
 
 **Features:**
 - Uses `@anthropic-ai/claude-agent-sdk` for the agent loop
+- Spawns Claude Code subprocess via bundled `cli.js`
 - Exposes Obsidian tools via MCP server (`ObsidianMCPServer.ts`)
 - Disables filesystem tools (Read, Write, Edit, Glob, Grep, Bash)
 - Enables vault-specific tools (vault_readFile, vault_writeFile, etc.)
@@ -244,11 +245,35 @@ util_*         - Parsing and slugifying utilities
 ```
 
 **Requirements:**
-- Anthropic API key (set in plugin settings)
-- `@anthropic-ai/claude-agent-sdk` package
+- **Anthropic API key required** - Must start with `sk-ant-` (get from [console.anthropic.com](https://console.anthropic.com))
+- Custom endpoints (MiniMax, etc.) are NOT supported - use WandWithThinkingAgent instead
+- `@anthropic-ai/claude-agent-sdk` package (bundled with plugin)
+
+**CLI Path Resolution:**
+The agent finds the Claude Agent SDK `cli.js` using multiple strategies:
+1. `CLAUDE_CLI_PATH` environment variable (highest priority)
+2. Shipped with plugin at `.obsidian/plugins/wand/cli.js`
+3. Dev mode: project's `node_modules/@anthropic-ai/claude-agent-sdk/cli.js`
+4. Global npm/pnpm installations
+
+#### WandWithThinkingAgent
+
+Extended thinking agent using direct Anthropic API calls with thinking blocks.
+
+**Philosophy:**
+- Deep reasoning for complex knowledge work
+- Extended thinking (up to 8K tokens) before responding
+- Works with Anthropic API and compatible providers (MiniMax, etc.)
+
+**Features:**
+- Uses Claude's extended thinking capability
+- Direct API integration without subprocess
+- Supports custom Anthropic-compatible endpoints
+- Budget tokens for thinking (default: 8192)
 
 **Custom Endpoints (MiniMax, etc.):**
-The agent supports Anthropic-compatible providers. For MiniMax:
+For users who want to use providers like MiniMax:
+- Use WandWithThinkingAgent (not ClaudeCodeAgent)
 - API URL: `https://api.minimax.io/anthropic`
 - Model: Auto-configured to `MiniMax-M2.1` when MiniMax endpoint detected
 - Get API key from [MiniMax Platform](https://platform.minimax.io/user-center/basic-information/interface-key)
