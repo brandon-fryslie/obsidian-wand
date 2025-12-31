@@ -245,9 +245,9 @@ util_*         - Parsing and slugifying utilities
 ```
 
 **Requirements:**
-- **Anthropic API key required** - Must start with `sk-ant-` (get from [console.anthropic.com](https://console.anthropic.com))
-- Custom endpoints (MiniMax, etc.) are NOT supported - use WandWithThinkingAgent instead
+- API key (Anthropic or compatible provider like MiniMax)
 - `@anthropic-ai/claude-agent-sdk` package (bundled with plugin)
+- Custom endpoints supported via `ANTHROPIC_BASE_URL` environment variable
 
 **CLI Path Resolution:**
 The agent finds the Claude Agent SDK `cli.js` using multiple strategies:
@@ -256,26 +256,10 @@ The agent finds the Claude Agent SDK `cli.js` using multiple strategies:
 3. Dev mode: project's `node_modules/@anthropic-ai/claude-agent-sdk/cli.js`
 4. Global npm/pnpm installations
 
-#### WandWithThinkingAgent
-
-Extended thinking agent using direct Anthropic API calls with thinking blocks.
-
-**Philosophy:**
-- Deep reasoning for complex knowledge work
-- Extended thinking (up to 8K tokens) before responding
-- Works with Anthropic API and compatible providers (MiniMax, etc.)
-
-**Features:**
-- Uses Claude's extended thinking capability
-- Direct API integration without subprocess
-- Supports custom Anthropic-compatible endpoints
-- Budget tokens for thinking (default: 8192)
-
 **Custom Endpoints (MiniMax, etc.):**
-For users who want to use providers like MiniMax:
-- Use WandWithThinkingAgent (not ClaudeCodeAgent)
-- API URL: `https://api.minimax.io/anthropic`
-- Model: Auto-configured to `MiniMax-M2.1` when MiniMax endpoint detected
+Configure in plugin settings:
+- Set Anthropic Endpoint to `https://api.minimax.io/anthropic`
+- Set your MiniMax API key
 - Get API key from [MiniMax Platform](https://platform.minimax.io/user-center/basic-information/interface-key)
 
 ---

@@ -69,29 +69,14 @@ export class ClaudeCodeAgent implements Agent {
       // Get API configuration
       const apiKey = this.getApiKey();
       if (!apiKey) {
-        throw new Error("Anthropic API key not configured. Please set it in plugin settings.");
+        throw new Error("API key not configured. Please set it in plugin settings.");
       }
       console.log("[ClaudeCode] API key configured:", apiKey ? `${apiKey.slice(0, 12)}...` : "NONE");
 
-      // Validate API key format - Claude Agent SDK requires a real Anthropic API key
-      // Valid Anthropic API keys start with sk-ant-
-      if (!apiKey.startsWith("sk-ant-")) {
-        const keyPrefix = apiKey.slice(0, 10);
-        throw new Error(
-          `Claude Code Agent requires an Anthropic API key (starting with 'sk-ant-'). ` +
-          `Your key starts with '${keyPrefix}...' which appears to be for a different service. ` +
-          `Get a valid API key from console.anthropic.com and set it in plugin settings.`
-        );
-      }
-
-      // Check if user is using a custom endpoint (which SDK doesn't support)
       const settings = this.deps.settings;
-      if (settings.llm.anthropicEndpoint && !settings.llm.anthropicEndpoint.includes("anthropic.com")) {
-        throw new Error(
-          "Claude Code Agent requires the official Anthropic API. " +
-          "Custom endpoints (like MiniMax) are not supported. " +
-          "Clear the Anthropic Endpoint in settings or switch to WandWithThinking agent."
-        );
+      const customEndpoint = settings.llm.anthropicEndpoint || "";
+      if (customEndpoint) {
+        console.log("[ClaudeCode] Custom endpoint configured:", customEndpoint);
       }
 
       const model = this.getModel();
@@ -120,14 +105,12 @@ export class ClaudeCodeAgent implements Agent {
           model,
           // Path to bundled CLI executable
           pathToClaudeCodeExecutable: cliPath,
-          // Pass API key via environment variable
-          // Need to include enough env vars for Node.js to work properly
+          // Pass API key and optional custom endpoint via environment variables
           env: {
             ...process.env,
-            // Force the API key (placed last to override any existing ANTHROPIC_API_KEY)
             ANTHROPIC_API_KEY: apiKey,
-            // Also set alternative key names Claude Code might check
-            CLAUDE_API_KEY: apiKey,
+            // Pass custom endpoint if configured (for MiniMax, etc.)
+            ...(customEndpoint && { ANTHROPIC_BASE_URL: customEndpoint }),
           },
           mcpServers: {
             obsidian: mcpServer,
@@ -203,19 +186,8 @@ export class ClaudeCodeAgent implements Agent {
   private getApiKey(): string {
     const settings = this.deps.settings;
     // Try settings first, then fall back to environment variable
-    // Environment variable is useful when Obsidian is launched from a terminal with ANTHROPIC_API_KEY set
     const settingsKey = settings.llm.anthropicApiKey || settings.llm.apiKey || "";
     const envKey = process.env.ANTHROPIC_API_KEY || "";
-
-    // Prefer a valid-looking Anthropic key
-    if (settingsKey.startsWith("sk-ant-")) {
-      return settingsKey;
-    }
-    if (envKey.startsWith("sk-ant-")) {
-      console.log("[ClaudeCode] Using ANTHROPIC_API_KEY from environment");
-      return envKey;
-    }
-    // Fall back to settings key even if format is questionable
     return settingsKey || envKey;
   }
 
@@ -232,21 +204,12 @@ export class ClaudeCodeAgent implements Agent {
   private formatError(error: unknown): string {
     const errorMsg = error instanceof Error ? error.message : String(error);
 
-    // If the error already contains detailed guidance (our custom errors), preserve it
-    if (errorMsg.includes("console.anthropic.com") || errorMsg.includes("plugin settings")) {
-      return `**Config Error** - ${errorMsg}`;
-    }
-
-    if (errorMsg.includes("API key") || errorMsg.includes("401")) {
-      return "**Auth Error** - Invalid or missing API key. Check your settings.";
+    if (errorMsg.includes("401") || errorMsg.includes("authentication")) {
+      return `**Auth Error** - ${errorMsg}`;
     }
 
     if (errorMsg.includes("rate") || errorMsg.includes("429")) {
-      return "**Rate Limited** - Too many requests. Please wait a moment.";
-    }
-
-    if (errorMsg.includes("network") || errorMsg.includes("fetch")) {
-      return "**Network Error** - Couldn't reach the API. Check your connection.";
+      return `**Rate Limited** - ${errorMsg}`;
     }
 
     if (errorMsg.includes("abort")) {
