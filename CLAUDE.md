@@ -211,6 +211,48 @@ vault.readFile({ "path": "notes/daily.md" })
 \`\`\`
 ```
 
+#### ClaudeCodeAgent
+
+Full Claude Code agent powered by the Claude Agent SDK, operating on Obsidian vaults.
+
+**Philosophy:**
+- Same autonomous agent loop as Claude Code CLI
+- All file operations routed through Obsidian's vault API
+- Supports multi-step autonomous execution
+- Full access to Obsidian plugin integrations
+
+**Features:**
+- Uses `@anthropic-ai/claude-agent-sdk` for the agent loop
+- Exposes Obsidian tools via MCP server (`ObsidianMCPServer.ts`)
+- Disables filesystem tools (Read, Write, Edit, Glob, Grep, Bash)
+- Enables vault-specific tools (vault_readFile, vault_writeFile, etc.)
+- Supports Dataview, Templater, Tasks, Excalidraw integrations
+- Streaming responses with real-time tool execution visibility
+
+**Obsidian MCP Tools:**
+```
+vault_*        - File operations (readFile, writeFile, createFile, delete, etc.)
+editor_*       - Selection and cursor operations
+workspace_*    - Open files, get context
+commands_*     - List and run Obsidian commands
+dataview_*     - DQL queries, pages, tasks
+templater_*    - Template processing
+tasks_*        - Task creation and toggling
+advancedtables_* - Table formatting
+excalidraw_*   - Drawing creation and export
+util_*         - Parsing and slugifying utilities
+```
+
+**Requirements:**
+- Anthropic API key (set in plugin settings)
+- `@anthropic-ai/claude-agent-sdk` package
+
+**Custom Endpoints (MiniMax, etc.):**
+The agent supports Anthropic-compatible providers. For MiniMax:
+- API URL: `https://api.minimax.io/anthropic`
+- Model: Auto-configured to `MiniMax-M2.1` when MiniMax endpoint detected
+- Get API key from [MiniMax Platform](https://platform.minimax.io/user-center/basic-information/interface-key)
+
 ---
 
 ## Request Flow
@@ -273,8 +315,11 @@ src/
 ├── agents/              # Agent implementations
 │   ├── Agent.ts         # Agent interface and types
 │   ├── WandAgent.ts     # Plan-based automation agent
+│   ├── MiniAgent.ts     # Direct action agent
+│   ├── ClaudeCodeAgent.ts    # Claude Agent SDK integration
+│   ├── ObsidianMCPServer.ts  # MCP tools for Claude Agent SDK
 │   ├── AgentRegistry.ts # Factory pattern for agent creation
-│   └── WandAgentFactory.ts
+│   ├── *AgentFactory.ts # Factory implementations
 ├── views/               # Svelte-based UI components
 │   └── ChatView.ts      # Main chat interface
 ├── services/            # Core business logic
@@ -311,7 +356,9 @@ pnpm run test:watch        # Watch mode
 ```
 
 Key test files:
-- `tests/agents/WandAgent.test.ts` - Agent implementation tests
+- `tests/agents/WandAgent.test.ts` - WandAgent implementation tests
+- `tests/agents/MiniAgent.test.ts` - MiniAgent implementation tests
+- `tests/agents/ClaudeCodeAgent.test.ts` - ClaudeCodeAgent implementation tests
 - `tests/agents/AgentRegistry.test.ts` - Registry and factory tests
 - `tests/services/Executor.test.ts` - Execution engine tests
 - `tests/services/PlanValidator.test.ts` - Plan validation tests

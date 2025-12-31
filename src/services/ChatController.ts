@@ -142,6 +142,22 @@ export class ChatController {
         return;
       }
 
+      // Handle simple message response (no plan)
+      if (response.type === "message") {
+        const assistantMessage: ChatMessage = {
+          id: this.generateId(),
+          role: "assistant",
+          content: response.message || "I processed your request.",
+          timestamp: new Date(),
+        };
+
+        this.updateState({
+          messages: [...newMessages, assistantMessage],
+          isGenerating: false,
+        });
+        return;
+      }
+
       if (response.type === "plan" && response.plan) {
         const plan = response.plan;
 
