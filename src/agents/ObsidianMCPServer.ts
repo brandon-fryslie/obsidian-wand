@@ -434,6 +434,20 @@ export function createObsidianMCPServer(app: App, toolsLayer: ToolsLayer) {
         }
       ),
 
+      tool(
+        "tasks_edit",
+        "Edit an existing task using the Tasks plugin modal.",
+        {
+          taskLine: z.string().describe("The full task line text to edit"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("tasks.edit", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
       // ============================================
       // ADVANCED TABLES INTEGRATION
       // ============================================
@@ -496,6 +510,20 @@ export function createObsidianMCPServer(app: App, toolsLayer: ToolsLayer) {
         },
         async (args) => {
           const result = await toolsLayer.executeTool("advancedtables.sort", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "advancedtables_align",
+        "Set column alignment in the current table.",
+        {
+          alignment: z.enum(["left", "center", "right"]).describe("Alignment for the current column"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("advancedtables.align", args, getContext());
           return {
             content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
           };
@@ -637,12 +665,14 @@ export const OBSIDIAN_TOOL_NAMES = [
   "tasks_status",
   "tasks_create",
   "tasks_toggle",
+  "tasks_edit",
   // Advanced Tables
   "advancedtables_status",
   "advancedtables_format",
   "advancedtables_insertRow",
   "advancedtables_insertColumn",
   "advancedtables_sort",
+  "advancedtables_align",
   // Excalidraw
   "excalidraw_status",
   "excalidraw_create",
@@ -926,6 +956,17 @@ export const OBSIDIAN_TOOL_SCHEMAS = [
       required: ["line", "path"],
     },
   },
+  {
+    name: "tasks_edit",
+    description: "Edit an existing task using the Tasks plugin modal.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        taskLine: { type: "string", description: "The full task line text to edit" },
+      },
+      required: ["taskLine"],
+    },
+  },
   // Advanced Tables
   {
     name: "advancedtables_status",
@@ -962,6 +1003,17 @@ export const OBSIDIAN_TOOL_SCHEMAS = [
         direction: { type: "string", enum: ["asc", "desc"], description: "Sort direction" },
       },
       required: ["direction"],
+    },
+  },
+  {
+    name: "advancedtables_align",
+    description: "Set column alignment in the current table.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        alignment: { type: "string", enum: ["left", "center", "right"], description: "Column alignment" },
+      },
+      required: ["alignment"],
     },
   },
   // Excalidraw
