@@ -1,6 +1,6 @@
 export type ApprovalMode = "ask" | "yolo" | "paranoid";
 
-export type AgentType = "wand" | "mini" | "claude-code";
+export type AgentType = "wand" | "mini" | "wand-thinking";
 
 export type LLMProvider = "openai" | "anthropic" | "custom";
 
@@ -138,8 +138,8 @@ export const DEFAULT_SETTINGS: ToolAgentSettings = {
       mini: {
         tools: [...ALL_TOOLS],
       },
-      // ClaudeCodeAgent uses Claude Agent SDK with Obsidian MCP tools
-      "claude-code": {
+      // WandWithThinkingAgent - autonomous agent with extended thinking
+      "wand-thinking": {
         tools: [...ALL_TOOLS],
         llm: {
           provider: "anthropic",

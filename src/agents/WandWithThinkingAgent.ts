@@ -4,19 +4,19 @@ import { OBSIDIAN_TOOL_NAMES, OBSIDIAN_TOOL_SCHEMAS } from "./ObsidianMCPServer"
 import { ActionPlan, Step, ToolName } from "../types/ActionPlan";
 
 /**
- * ClaudeCodeAgent - Autonomous agent with Claude Code-style behavior
+ * WandWithThinkingAgent - Autonomous agent with extended thinking
  *
- * Unlike the SDK-based approach, this uses direct Anthropic API calls with
- * tool use, implementing our own agent loop. This works in Obsidian's
- * Electron environment where subprocess spawning isn't available.
+ * Uses direct Anthropic API calls with tool use, implementing an autonomous
+ * agent loop. Supports extended thinking for complex reasoning tasks.
  *
  * Key features:
  * - Autonomous multi-turn execution with tool calling
  * - All operations through Obsidian vault tools
  * - Iterative problem solving (up to maxTurns)
  * - Real-time step tracking
+ * - Extended thinking support for complex tasks
  */
-export class ClaudeCodeAgent implements Agent {
+export class WandWithThinkingAgent implements Agent {
   private deps: AgentDependencies;
   private state: AgentState;
   private stateChangeCallbacks: ((state: AgentState) => void)[] = [];
@@ -33,15 +33,15 @@ export class ClaudeCodeAgent implements Agent {
   }
 
   async initialize(): Promise<void> {
-    console.log("[ClaudeCodeAgent] Initialized with direct API mode");
+    console.log("[WandWithThinking] Initialized with direct API mode");
   }
 
   getName(): string {
-    return "Claude Code Agent";
+    return "Wand with Thinking";
   }
 
   getDescription(): string {
-    return "Autonomous multi-step agent with Claude Code-style reasoning - executes iteratively until task complete";
+    return "Autonomous agent with extended thinking - iterates until task complete";
   }
 
   getState(): AgentState {
@@ -91,7 +91,7 @@ export class ClaudeCodeAgent implements Agent {
       const tools = this.buildToolDefinitions();
 
       // Run the agent loop
-      console.log(`[ClaudeCodeAgent] Starting agent loop...`);
+      console.log(`[WandWithThinking] Starting agent loop...`);
       const result = await this.runAgentLoop({
         systemPrompt,
         userMessage: message,
@@ -102,9 +102,9 @@ export class ClaudeCodeAgent implements Agent {
         context,
       });
 
-      console.log(`[ClaudeCodeAgent] Agent loop completed, result length: ${result?.length || 0}`);
+      console.log(`[WandWithThinking] Agent loop completed, result length: ${result?.length || 0}`);
       this.updateState({ status: "idle" });
-      console.log(`[ClaudeCodeAgent] State updated to idle`);
+      console.log(`[WandWithThinking] State updated to idle`);
 
       // Return results
       if (this.executedSteps.length > 0) {
@@ -168,7 +168,7 @@ export class ClaudeCodeAgent implements Agent {
       }
 
       turn++;
-      console.log(`[ClaudeCodeAgent] Turn ${turn}/${this.MAX_TURNS}`);
+      console.log(`[WandWithThinking] Turn ${turn}/${this.MAX_TURNS}`);
 
       // Make API call
       const response = await this.callAnthropicAPI({
@@ -181,10 +181,10 @@ export class ClaudeCodeAgent implements Agent {
       });
 
       // Add assistant response to history
-      console.log(`[ClaudeCodeAgent] Processing response...`);
+      console.log(`[WandWithThinking] Processing response...`);
 
       if (!response.content || !Array.isArray(response.content)) {
-        console.error(`[ClaudeCodeAgent] Invalid response structure:`, JSON.stringify(response).substring(0, 500));
+        console.error(`[WandWithThinking] Invalid response structure:`, JSON.stringify(response).substring(0, 500));
         throw new Error("Invalid API response: missing content array");
       }
 
@@ -192,21 +192,21 @@ export class ClaudeCodeAgent implements Agent {
 
       // Check if we're done (no tool use)
       const toolUseBlocks = response.content.filter((b: any) => b.type === "tool_use");
-      console.log(`[ClaudeCodeAgent] Tool use blocks found: ${toolUseBlocks.length}`);
+      console.log(`[WandWithThinking] Tool use blocks found: ${toolUseBlocks.length}`);
 
       if (toolUseBlocks.length === 0) {
         // Extract final text response
         const textBlocks = response.content.filter((b: any) => b.type === "text");
-        console.log(`[ClaudeCodeAgent] Text blocks found: ${textBlocks.length}`);
+        console.log(`[WandWithThinking] Text blocks found: ${textBlocks.length}`);
 
         // Handle extended thinking - some providers return thinking blocks
         const thinkingBlocks = response.content.filter((b: any) => b.type === "thinking");
         if (thinkingBlocks.length > 0) {
-          console.log(`[ClaudeCodeAgent] Thinking blocks found: ${thinkingBlocks.length}`);
+          console.log(`[WandWithThinking] Thinking blocks found: ${thinkingBlocks.length}`);
         }
 
         finalResponse = textBlocks.map((b: any) => b.text).join("\n");
-        console.log(`[ClaudeCodeAgent] Final response length: ${finalResponse.length} chars`);
+        console.log(`[WandWithThinking] Final response length: ${finalResponse.length} chars`);
         break;
       }
 
@@ -215,7 +215,7 @@ export class ClaudeCodeAgent implements Agent {
       const toolResults: any[] = [];
 
       for (const toolUse of toolUseBlocks) {
-        console.log(`[ClaudeCodeAgent] Executing tool: ${toolUse.name}`, toolUse.input);
+        console.log(`[WandWithThinking] Executing tool: ${toolUse.name}`, toolUse.input);
 
         // Track the step
         this.executedSteps.push({
@@ -253,7 +253,7 @@ export class ClaudeCodeAgent implements Agent {
       finalResponse += "\n\n(Reached maximum turns limit)";
     }
 
-    console.log(`[ClaudeCodeAgent] Returning from agent loop, finalResponse length: ${finalResponse.length}`);
+    console.log(`[WandWithThinking] Returning from agent loop, finalResponse length: ${finalResponse.length}`);
     return finalResponse;
   }
 
@@ -268,8 +268,8 @@ export class ClaudeCodeAgent implements Agent {
     const { systemPrompt, messages, tools, apiKey, baseUrl, model } = params;
 
     const url = `${baseUrl}/v1/messages`;
-    console.log(`[ClaudeCodeAgent] Making API request to: ${url}`);
-    console.log(`[ClaudeCodeAgent] Using model: ${model}`);
+    console.log(`[WandWithThinking] Making API request to: ${url}`);
+    console.log(`[WandWithThinking] Using model: ${model}`);
 
     // Determine correct headers based on endpoint
     // MiniMax uses Authorization Bearer and doesn't support anthropic-version header (CORS)
@@ -287,7 +287,7 @@ export class ClaudeCodeAgent implements Agent {
       headers["anthropic-version"] = "2023-06-01";
     }
 
-    console.log(`[ClaudeCodeAgent] Using auth: ${isMiniMax ? "Authorization Bearer" : "x-api-key"}`);
+    console.log(`[WandWithThinking] Using auth: ${isMiniMax ? "Authorization Bearer" : "x-api-key"}`);
 
     // Use native fetch - Obsidian's request() has CORS issues with some headers
     const requestBody = JSON.stringify({
@@ -298,7 +298,7 @@ export class ClaudeCodeAgent implements Agent {
       tools,
     });
 
-    console.log(`[ClaudeCodeAgent] Request body length: ${requestBody.length}`);
+    console.log(`[WandWithThinking] Request body length: ${requestBody.length}`);
 
     let response;
     try {
@@ -309,27 +309,27 @@ export class ClaudeCodeAgent implements Agent {
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      console.error(`[ClaudeCodeAgent] fetch threw error:`, errorMessage);
-      console.error(`[ClaudeCodeAgent] Error details:`, err);
+      console.error(`[WandWithThinking] fetch threw error:`, errorMessage);
+      console.error(`[WandWithThinking] Error details:`, err);
       throw new Error(`Network request failed: ${errorMessage}`);
     }
 
-    console.log(`[ClaudeCodeAgent] Response status: ${response.status}`);
+    console.log(`[WandWithThinking] Response status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[ClaudeCodeAgent] API error response:`, errorText);
+      console.error(`[WandWithThinking] API error response:`, errorText);
       throw new Error(`API error (${response.status}): ${errorText}`);
     }
 
     // Parse the response
     try {
       const data = await response.json();
-      console.log(`[ClaudeCodeAgent] Response parsed successfully, content blocks:`, data.content?.length || 0);
-      console.log(`[ClaudeCodeAgent] Response content types:`, data.content?.map((b: any) => b.type).join(", ") || "none");
+      console.log(`[WandWithThinking] Response parsed successfully, content blocks:`, data.content?.length || 0);
+      console.log(`[WandWithThinking] Response content types:`, data.content?.map((b: any) => b.type).join(", ") || "none");
       return data;
     } catch (err) {
-      console.error(`[ClaudeCodeAgent] Failed to parse JSON response:`, err);
+      console.error(`[WandWithThinking] Failed to parse JSON response:`, err);
       throw new Error(`Invalid JSON response from API`);
     }
   }

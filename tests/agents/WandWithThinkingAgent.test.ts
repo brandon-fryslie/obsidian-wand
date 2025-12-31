@@ -1,5 +1,5 @@
-import { ClaudeCodeAgent } from "../../src/agents/ClaudeCodeAgent";
-import { ClaudeCodeAgentFactory } from "../../src/agents/ClaudeCodeAgentFactory";
+import { WandWithThinkingAgent } from "../../src/agents/WandWithThinkingAgent";
+import { WandWithThinkingAgentFactory } from "../../src/agents/WandWithThinkingAgentFactory";
 import { AgentDependencies } from "../../src/agents/Agent";
 import { App } from "obsidian";
 import { DEFAULT_SETTINGS, ALL_TOOLS } from "../../src/types/settings";
@@ -25,8 +25,8 @@ jest.mock("@anthropic-ai/claude-agent-sdk", () => ({
   })),
 }));
 
-describe("ClaudeCodeAgent", () => {
-  let agent: ClaudeCodeAgent;
+describe("WandWithThinkingAgent", () => {
+  let agent: WandWithThinkingAgent;
   let mockApp: App;
   let deps: AgentDependencies;
   let llmProvider: LLMProvider;
@@ -64,7 +64,7 @@ describe("ClaudeCodeAgent", () => {
       approvalService,
     };
 
-    agent = new ClaudeCodeAgent(deps);
+    agent = new WandWithThinkingAgent(deps);
   });
 
   describe("initialization", () => {
@@ -73,7 +73,7 @@ describe("ClaudeCodeAgent", () => {
     });
 
     it("should return correct name", () => {
-      expect(agent.getName()).toBe("Claude Code Agent");
+      expect(agent.getName()).toBe("Wand with Thinking");
     });
 
     it("should return correct description", () => {
@@ -152,21 +152,21 @@ describe("ClaudeCodeAgent", () => {
   });
 });
 
-describe("ClaudeCodeAgentFactory", () => {
-  let factory: ClaudeCodeAgentFactory;
+describe("WandWithThinkingAgentFactory", () => {
+  let factory: WandWithThinkingAgentFactory;
 
   beforeEach(() => {
-    factory = new ClaudeCodeAgentFactory();
+    factory = new WandWithThinkingAgentFactory();
   });
 
   it("should return correct info", () => {
     const info = factory.getInfo();
-    expect(info.type).toBe("claude-code");
-    expect(info.name).toBe("Claude Code Agent");
+    expect(info.type).toBe("wand-thinking");
+    expect(info.name).toBe("Wand with Thinking");
     expect(info.description).toContain("autonomous");
   });
 
-  it("should create ClaudeCodeAgent instance", () => {
+  it("should create WandWithThinkingAgent instance", () => {
     const mockApp = createMockApp();
     const deps: AgentDependencies = {
       app: mockApp,
@@ -181,8 +181,8 @@ describe("ClaudeCodeAgentFactory", () => {
     };
 
     const agent = factory.create(deps);
-    expect(agent).toBeInstanceOf(ClaudeCodeAgent);
-    expect(agent.getName()).toBe("Claude Code Agent");
+    expect(agent).toBeInstanceOf(WandWithThinkingAgent);
+    expect(agent.getName()).toBe("Wand with Thinking");
   });
 });
 
