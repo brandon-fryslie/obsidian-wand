@@ -1,6 +1,6 @@
 export type ApprovalMode = "ask" | "yolo" | "paranoid";
 
-export type AgentType = "wand" | "mini" | "wand-thinking";
+export type AgentType = "wand" | "mini" | "wand-thinking" | "claude-code";
 
 export type LLMProvider = "openai" | "anthropic" | "custom";
 

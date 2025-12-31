@@ -15,6 +15,7 @@ import { AgentRegistry } from "../agents/AgentRegistry";
 import { WandAgentFactory } from "../agents/WandAgentFactory";
 import { MiniAgentFactory } from "../agents/MiniAgentFactory";
 import { WandWithThinkingAgentFactory } from "../agents/WandWithThinkingAgentFactory";
+import { ClaudeCodeAgentFactory } from "../agents/ClaudeCodeAgentFactory";
 
 export class PluginServices {
   public readonly toolsLayer: ToolsLayer;
@@ -61,6 +62,7 @@ export class PluginServices {
     this.agentRegistry.register("wand", new WandAgentFactory());
     this.agentRegistry.register("mini", new MiniAgentFactory());
     this.agentRegistry.register("wand-thinking", new WandWithThinkingAgentFactory());
+    this.agentRegistry.register("claude-code", new ClaudeCodeAgentFactory());
 
     // Create default agent from registry
     const agent = this.createAgent(settings.agent.type);
