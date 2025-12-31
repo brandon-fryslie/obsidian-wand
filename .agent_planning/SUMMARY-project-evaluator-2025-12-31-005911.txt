@@ -1,0 +1,30 @@
+Agent: project-evaluator | 2025-12-31-005911
+Scope: claude-sdk-inprocess/full-integration
+Completion: 15% | Gaps: 4 blockers | Test Quality: 0/5 (no tests)
+Reused: 0 findings | Fresh: 1 evaluation
+Cache updated: [claude-sdk-integration.md, INDEX.md]
+Ambiguities: 6 found (1 CRITICAL)
+Workflow: PAUSE (critical questions need answers before coding)
+
+---
+
+CRITICAL BLOCKER: Unknown if SDK requires Claude Code subprocess even with in-process MCP servers.
+Evidence suggests "in-process" means no subprocess, but SDK has extensive subprocess infrastructure.
+MUST TEST with minimal POC before any implementation work.
+
+RECOMMENDATION: Run Phase 1 POC (30 min smoke test) to validate core assumption.
+If subprocess required → STOP, enhance WandWithThinkingAgent instead.
+If subprocess NOT required → Proceed with full integration.
+
+ASSETS READY:
+- SDK installed (v0.1.76)
+- createSdkMcpServer() exists
+- ObsidianMCPServer.ts has 40+ tools in correct format
+- WandWithThinkingAgent provides working fallback
+
+RISKS:
+1. Subprocess requirement (60% probability, kills approach)
+2. Electron incompatibility (30% probability, blocks SDK)
+3. Bundle size explosion (50% probability, distribution issue)
+
+NEXT: 3-hour validation window to prove/disprove viability before major time investment.

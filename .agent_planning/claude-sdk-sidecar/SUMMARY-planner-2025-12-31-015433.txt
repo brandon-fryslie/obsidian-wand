@@ -1,0 +1,6 @@
+Agent: status-planner | 2025-12-31-015433
+Topic: Claude Code integration via MCP Server exposure
+Files: PLAN-2025-12-31-015433.md, DOD-2025-12-31-015433.md
+Items: 5 (P0: 1, P1: 2, P2: 2)
+Approach: Option 3 - MCP Server (evaluator recommended, 90% complete)
+Effort: Sprint 1: 10-13h (P0+P1), Sprint 2: 5-7h (P2)

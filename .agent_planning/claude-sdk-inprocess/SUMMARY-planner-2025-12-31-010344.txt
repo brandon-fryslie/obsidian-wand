@@ -1,0 +1,6 @@
+Agent: status-planner | 2025-12-31-010344
+Topic: claude-sdk-inprocess
+Files: PLAN-2025-12-31-010344.md, DOD-2025-12-31-010344.md
+Items: 14 (P0: 4, P1: 5, P2: 3, P3: 2)
+Critical: P0-3 validates if SDK works without subprocess (60% chance of failure)
+Strategy: Fail-fast validation before full implementation

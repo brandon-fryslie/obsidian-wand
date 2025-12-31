@@ -1,0 +1,8 @@
+Agent: project-evaluator | 2025-12-31 01:45:00
+Scope: project/claude-sdk-sidecar
+Completion: VIABLE but NOT RECOMMENDED | Gaps: 0 (clear decision) | Test Quality: N/A
+Reused: 1 RECENT finding (claude-sdk-integration.md) | Fresh: 9+ plugin analyses
+Cache updated: [obsidian-subprocess-patterns.md] in eval-cache/
+Ambiguities: 0 (clear technical decision) | Workflow: CONTINUE with Option 3 (MCP Server)
+Decision: Sidecar approach is viable but inferior to MCP server pattern
+Next: Implement MCP server WebSocket transport (10-15 hours) OR validate SDK if needed (3-4 hours)

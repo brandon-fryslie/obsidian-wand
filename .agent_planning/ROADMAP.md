@@ -240,6 +240,55 @@ The foundation is solid:
 ## Phase 7: The Intelligence Layer
 *"AI that learns how you work"*
 
+### Topics
+
+| Topic | Directory | State | Notes |
+|-------|-----------|-------|-------|
+| Claude SDK In-Process | `claude-sdk-inprocess/` | PLANNING | Run Claude Agent SDK inside plugin with MCP tools |
+| Claude Code Sidecar | `claude-code-sidecar-subprocess/` | PLANNING | Plugin spawns Claude Code as subprocess |
+| Obsidian MCP Server | `claude-sdk-sidecar/` | PLANNING | Expose Obsidian tools to external Claude Code |
+
+---
+
+### 7.0 Claude Code Integration
+
+Three complementary approaches to bring Claude Code capabilities to Obsidian:
+
+#### 7.0.1 In-Process SDK (Option 1)
+**Directory**: `claude-sdk-inprocess/`
+**Use Case**: Users who want full Claude Code experience within Obsidian UI
+
+- Run Claude Agent SDK directly in plugin process
+- Use `createSdkMcpServer()` for in-process Obsidian tools
+- Zero external dependencies for users
+- Autonomous multi-turn execution with tool use
+
+**Status**: Needs POC validation (SDK subprocess requirements unclear)
+
+#### 7.0.2 Sidecar Subprocess (Option 2)
+**Directory**: `claude-code-sidecar-subprocess/`
+**Use Case**: Alternative to Option 1 if in-process doesn't work
+
+- Plugin spawns Claude Code CLI as subprocess
+- IPC communication via stdio
+- Full Claude Code capabilities (bash, file system)
+- Obsidian tools exposed via MCP to subprocess
+
+**Status**: Fallback if Option 1 fails
+
+#### 7.0.3 MCP Server Exposure (Option 3)
+**Directory**: `claude-sdk-sidecar/`
+**Use Case**: Users who already use Claude Code in terminal
+
+- Plugin exposes WebSocket MCP server
+- External Claude Code connects to plugin
+- Users get Obsidian tools in their existing Claude Code workflow
+- Already 90% implemented (ObsidianMCPServer.ts exists)
+
+**Status**: Ready for implementation (proven pattern)
+
+---
+
 ### 7.1 Plan Analytics & Learning
 - **Usage Patterns**: Which plans run most, which fail, which get modified
 - **Suggestion Engine**: "You usually run X after Y, want to chain them?"
