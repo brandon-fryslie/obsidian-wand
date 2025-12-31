@@ -622,6 +622,93 @@ export function createObsidianMCPServer(app: App, toolsLayer: ToolsLayer) {
           };
         }
       ),
+
+      // ============================================
+      // PLUGIN MANAGER OPERATIONS
+      // ============================================
+
+      tool(
+        "plugins_search",
+        "Search for community plugins by name, author, or description.",
+        {
+          query: z.string().describe("Search query for plugin name, author, or description"),
+          limit: z.number().optional().describe("Maximum number of results to return (default: 20)"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("plugins.search", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "plugins_list",
+        "List all installed community plugins with their status.",
+        {},
+        async () => {
+          const result = await toolsLayer.executeTool("plugins.list", {}, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "plugins_install",
+        "Install a community plugin from the official registry. The plugin must be enabled after installation.",
+        {
+          pluginId: z.string().describe("The plugin ID (e.g., 'dataview', 'templater-obsidian')"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("plugins.install", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "plugins_uninstall",
+        "Uninstall a community plugin by removing its files.",
+        {
+          pluginId: z.string().describe("The plugin ID to uninstall"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("plugins.uninstall", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "plugins_enable",
+        "Enable an installed plugin.",
+        {
+          pluginId: z.string().describe("The plugin ID to enable"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("plugins.enable", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "plugins_disable",
+        "Disable an installed plugin.",
+        {
+          pluginId: z.string().describe("The plugin ID to disable"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("plugins.disable", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
     ],
   });
 }
@@ -681,6 +768,13 @@ export const OBSIDIAN_TOOL_NAMES = [
   // Utilities
   "util_parseMarkdownBullets",
   "util_slugifyTitle",
+  // Plugin Manager
+  "plugins_search",
+  "plugins_list",
+  "plugins_install",
+  "plugins_uninstall",
+  "plugins_enable",
+  "plugins_disable",
 ] as const;
 
 export type ObsidianToolName = (typeof OBSIDIAN_TOOL_NAMES)[number];
@@ -1079,6 +1173,68 @@ export const OBSIDIAN_TOOL_SCHEMAS = [
         title: { type: "string", description: "Title to slugify" },
       },
       required: ["title"],
+    },
+  },
+  // Plugin Manager
+  {
+    name: "plugins_search",
+    description: "Search for community plugins by name, author, or description.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Search query" },
+        limit: { type: "number", description: "Max results (default: 20)" },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "plugins_list",
+    description: "List all installed community plugins with their status.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "plugins_install",
+    description: "Install a community plugin from the official registry.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pluginId: { type: "string", description: "The plugin ID to install" },
+      },
+      required: ["pluginId"],
+    },
+  },
+  {
+    name: "plugins_uninstall",
+    description: "Uninstall a community plugin by removing its files.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pluginId: { type: "string", description: "The plugin ID to uninstall" },
+      },
+      required: ["pluginId"],
+    },
+  },
+  {
+    name: "plugins_enable",
+    description: "Enable an installed plugin.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pluginId: { type: "string", description: "The plugin ID to enable" },
+      },
+      required: ["pluginId"],
+    },
+  },
+  {
+    name: "plugins_disable",
+    description: "Disable an installed plugin.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pluginId: { type: "string", description: "The plugin ID to disable" },
+      },
+      required: ["pluginId"],
     },
   },
 ];

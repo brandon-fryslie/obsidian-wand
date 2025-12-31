@@ -83,7 +83,15 @@ export type ToolName =
 
   // Utility functions
   | "util.parseMarkdownBullets"
-  | "util.slugifyTitle";
+  | "util.slugifyTitle"
+
+  // Plugin Manager operations
+  | "plugins.search"
+  | "plugins.list"
+  | "plugins.install"
+  | "plugins.uninstall"
+  | "plugins.enable"
+  | "plugins.disable";
 
 export interface ToolDefinition {
   name: ToolName;

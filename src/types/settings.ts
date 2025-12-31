@@ -77,6 +77,8 @@ export const READ_ONLY_TOOLS = [
   "commands.list",
   "util.parseMarkdownBullets",
   "util.slugifyTitle",
+  "plugins.search",
+  "plugins.list",
 ];
 
 // Tools that modify state but are generally safe
@@ -94,6 +96,10 @@ export const DANGEROUS_TOOLS = [
   "vault.writeFile",
   "editor.replaceSelection",
   "commands.run",
+  "plugins.install",
+  "plugins.uninstall",
+  "plugins.enable",
+  "plugins.disable",
 ];
 
 // All available tools

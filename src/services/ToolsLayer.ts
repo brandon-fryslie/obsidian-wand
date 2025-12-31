@@ -5,6 +5,7 @@ import { TemplaterService } from "./TemplaterService";
 import { TasksService } from "./TasksService";
 import { AdvancedTablesService } from "./AdvancedTablesService";
 import { ExcalidrawService } from "./ExcalidrawService";
+import { PluginManagerService } from "./PluginManagerService";
 
 export class ToolsLayer {
   private app: App;
@@ -13,6 +14,7 @@ export class ToolsLayer {
   private tasksService: TasksService;
   private advancedTablesService: AdvancedTablesService;
   private excalidrawService: ExcalidrawService;
+  private pluginManagerService: PluginManagerService;
 
   constructor(app: App) {
     this.app = app;
@@ -21,6 +23,7 @@ export class ToolsLayer {
     this.tasksService = new TasksService(app);
     this.advancedTablesService = new AdvancedTablesService(app);
     this.excalidrawService = new ExcalidrawService(app);
+    this.pluginManagerService = new PluginManagerService(app);
   }
 
   async executeTool(toolName: ToolName, args: any, context: ExecutionContext): Promise<any> {
@@ -170,6 +173,25 @@ export class ToolsLayer {
 
       case "util.slugifyTitle":
         return this.slugifyTitle(args.title);
+
+      // Plugin Manager operations
+      case "plugins.search":
+        return await this.pluginsSearch(args.query, args.limit);
+
+      case "plugins.list":
+        return await this.pluginsList();
+
+      case "plugins.install":
+        return await this.pluginsInstall(args.pluginId);
+
+      case "plugins.uninstall":
+        return await this.pluginsUninstall(args.pluginId);
+
+      case "plugins.enable":
+        return await this.pluginsEnable(args.pluginId);
+
+      case "plugins.disable":
+        return await this.pluginsDisable(args.pluginId);
 
       default:
         throw new Error(`Unknown tool: ${toolName}`);
@@ -953,5 +975,75 @@ export class ToolsLayer {
     // Implementation for undo operations
     // This would store inverse operations for each tool execution
     console.log("Undo operation:", entry);
+  }
+
+  // Plugin Manager tool implementations
+
+  private async pluginsSearch(query: string, limit?: number): Promise<{
+    results: Array<{
+      id: string;
+      name: string;
+      author: string;
+      description: string;
+      installed: boolean;
+      enabled: boolean;
+    }>;
+    count: number;
+  }> {
+    const results = await this.pluginManagerService.searchPlugins(query, limit);
+    return {
+      results,
+      count: results.length,
+    };
+  }
+
+  private async pluginsList(): Promise<{
+    plugins: Array<{
+      id: string;
+      name: string;
+      version: string;
+      enabled: boolean;
+      author?: string;
+      description?: string;
+    }>;
+    count: number;
+  }> {
+    const plugins = this.pluginManagerService.listInstalledPlugins();
+    return {
+      plugins,
+      count: plugins.length,
+    };
+  }
+
+  private async pluginsInstall(pluginId: string): Promise<{
+    success: boolean;
+    message: string;
+    pluginId: string;
+  }> {
+    return await this.pluginManagerService.installPlugin(pluginId);
+  }
+
+  private async pluginsUninstall(pluginId: string): Promise<{
+    success: boolean;
+    message: string;
+    pluginId: string;
+  }> {
+    return await this.pluginManagerService.uninstallPlugin(pluginId);
+  }
+
+  private async pluginsEnable(pluginId: string): Promise<{
+    success: boolean;
+    message: string;
+    pluginId: string;
+  }> {
+    return await this.pluginManagerService.enablePlugin(pluginId);
+  }
+
+  private async pluginsDisable(pluginId: string): Promise<{
+    success: boolean;
+    message: string;
+    pluginId: string;
+  }> {
+    return await this.pluginManagerService.disablePlugin(pluginId);
   }
 }
