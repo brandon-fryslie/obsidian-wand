@@ -1092,8 +1092,10 @@ export class ToolsLayer {
       updatedAt: string;
     }>;
     count: number;
+    repomixAvailable: boolean;
   }> {
     const skills = await this.skillService.getSkills();
+    const repomixAvailable = await this.skillService.checkRepomixAvailable();
     return {
       skills: skills.map(s => ({
         id: s.id,
@@ -1104,6 +1106,7 @@ export class ToolsLayer {
         updatedAt: s.updatedAt.toISOString(),
       })),
       count: skills.length,
+      repomixAvailable,
     };
   }
 
