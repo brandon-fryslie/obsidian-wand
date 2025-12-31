@@ -6,6 +6,7 @@ import { TasksService } from "./TasksService";
 import { AdvancedTablesService } from "./AdvancedTablesService";
 import { ExcalidrawService } from "./ExcalidrawService";
 import { PluginManagerService } from "./PluginManagerService";
+import { SkillService } from "./SkillService";
 
 export class ToolsLayer {
   private app: App;
@@ -15,6 +16,7 @@ export class ToolsLayer {
   private advancedTablesService: AdvancedTablesService;
   private excalidrawService: ExcalidrawService;
   private pluginManagerService: PluginManagerService;
+  private skillService: SkillService;
 
   constructor(app: App) {
     this.app = app;
@@ -24,6 +26,21 @@ export class ToolsLayer {
     this.advancedTablesService = new AdvancedTablesService(app);
     this.excalidrawService = new ExcalidrawService(app);
     this.pluginManagerService = new PluginManagerService(app);
+    this.skillService = new SkillService(app, this.pluginManagerService);
+  }
+
+  /**
+   * Initialize async services
+   */
+  async initialize(): Promise<void> {
+    await this.skillService.initialize();
+  }
+
+  /**
+   * Get the skill service for direct access
+   */
+  getSkillService(): SkillService {
+    return this.skillService;
   }
 
   async executeTool(toolName: ToolName, args: any, context: ExecutionContext): Promise<any> {
@@ -192,6 +209,22 @@ export class ToolsLayer {
 
       case "plugins.disable":
         return await this.pluginsDisable(args.pluginId);
+
+      // Skill operations
+      case "skills.list":
+        return await this.skillsList();
+
+      case "skills.get":
+        return await this.skillsGet(args.skillId);
+
+      case "skills.generate":
+        return await this.skillsGenerate(args.pluginId);
+
+      case "skills.delete":
+        return await this.skillsDelete(args.skillId);
+
+      case "skills.refresh":
+        return await this.skillsRefresh(args.skillId);
 
       default:
         throw new Error(`Unknown tool: ${toolName}`);
@@ -1045,5 +1078,134 @@ export class ToolsLayer {
     pluginId: string;
   }> {
     return await this.pluginManagerService.disablePlugin(pluginId);
+  }
+
+  // Skill tool implementations
+
+  private async skillsList(): Promise<{
+    skills: Array<{
+      id: string;
+      name: string;
+      description: string;
+      pluginId?: string;
+      tokenEstimate: number;
+      updatedAt: string;
+    }>;
+    count: number;
+  }> {
+    const skills = await this.skillService.getSkills();
+    return {
+      skills: skills.map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        pluginId: s.pluginId,
+        tokenEstimate: s.tokenEstimate,
+        updatedAt: s.updatedAt.toISOString(),
+      })),
+      count: skills.length,
+    };
+  }
+
+  private async skillsGet(skillId: string): Promise<{
+    found: boolean;
+    skill?: {
+      id: string;
+      name: string;
+      description: string;
+      content: string;
+      pluginId?: string;
+      tokenEstimate: number;
+    };
+  }> {
+    const skill = this.skillService.getSkill(skillId);
+    if (!skill) {
+      return { found: false };
+    }
+    return {
+      found: true,
+      skill: {
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        content: skill.content,
+        pluginId: skill.pluginId,
+        tokenEstimate: skill.tokenEstimate,
+      },
+    };
+  }
+
+  private async skillsGenerate(pluginId: string): Promise<{
+    success: boolean;
+    message: string;
+    skill?: {
+      id: string;
+      name: string;
+      tokenEstimate: number;
+    };
+  }> {
+    try {
+      const skill = await this.skillService.generateSkillFromPlugin(pluginId);
+      return {
+        success: true,
+        message: `Generated skill for "${skill.name}" (~${skill.tokenEstimate} tokens)`,
+        skill: {
+          id: skill.id,
+          name: skill.name,
+          tokenEstimate: skill.tokenEstimate,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to generate skill: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  }
+
+  private async skillsDelete(skillId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      await this.skillService.deleteSkill(skillId);
+      return {
+        success: true,
+        message: `Deleted skill "${skillId}"`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to delete skill: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  }
+
+  private async skillsRefresh(skillId: string): Promise<{
+    success: boolean;
+    message: string;
+    skill?: {
+      id: string;
+      name: string;
+      tokenEstimate: number;
+    };
+  }> {
+    try {
+      const skill = await this.skillService.refreshSkill(skillId);
+      return {
+        success: true,
+        message: `Refreshed skill "${skill.name}" (~${skill.tokenEstimate} tokens)`,
+        skill: {
+          id: skill.id,
+          name: skill.name,
+          tokenEstimate: skill.tokenEstimate,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to refresh skill: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
   }
 }

@@ -154,6 +154,7 @@ export class PluginServices {
   }
 
   async initialize() {
+    await this.toolsLayer.initialize();
     await this.macroStore.load();
     await this.planStore.load();
     await this.templateStore.load();

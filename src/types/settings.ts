@@ -79,6 +79,8 @@ export const READ_ONLY_TOOLS = [
   "util.slugifyTitle",
   "plugins.search",
   "plugins.list",
+  "skills.list",
+  "skills.get",
 ];
 
 // Tools that modify state but are generally safe
@@ -87,6 +89,9 @@ export const SAFE_WRITE_TOOLS = [
   "vault.createFile",
   "workspace.openFile",
   "editor.insertAtCursor",
+  "skills.generate",
+  "skills.delete",
+  "skills.refresh",
 ];
 
 // Tools that need extra caution

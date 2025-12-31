@@ -709,6 +709,78 @@ export function createObsidianMCPServer(app: App, toolsLayer: ToolsLayer) {
           };
         }
       ),
+
+      // ============================================
+      // SKILL OPERATIONS
+      // ============================================
+
+      tool(
+        "skills_list",
+        "List all available skills. Skills provide context about plugin usage without bloating every request.",
+        {},
+        async () => {
+          const result = await toolsLayer.executeTool("skills.list", {}, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "skills_get",
+        "Get the full content of a skill. Use this to learn how to use a plugin's features.",
+        {
+          skillId: z.string().describe("The skill ID (usually the plugin ID)"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("skills.get", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "skills_generate",
+        "Generate a skill from a plugin's GitHub repository. Fetches README and docs to create a skill that teaches how to use the plugin.",
+        {
+          pluginId: z.string().describe("The plugin ID to generate a skill for (e.g., 'dataview')"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("skills.generate", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "skills_delete",
+        "Delete a skill.",
+        {
+          skillId: z.string().describe("The skill ID to delete"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("skills.delete", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
+
+      tool(
+        "skills_refresh",
+        "Refresh a skill by re-fetching from the plugin's GitHub repository.",
+        {
+          skillId: z.string().describe("The skill ID to refresh"),
+        },
+        async (args) => {
+          const result = await toolsLayer.executeTool("skills.refresh", args, getContext());
+          return {
+            content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+          };
+        }
+      ),
     ],
   });
 }
@@ -775,6 +847,12 @@ export const OBSIDIAN_TOOL_NAMES = [
   "plugins_uninstall",
   "plugins_enable",
   "plugins_disable",
+  // Skills
+  "skills_list",
+  "skills_get",
+  "skills_generate",
+  "skills_delete",
+  "skills_refresh",
 ] as const;
 
 export type ObsidianToolName = (typeof OBSIDIAN_TOOL_NAMES)[number];
@@ -1235,6 +1313,56 @@ export const OBSIDIAN_TOOL_SCHEMAS = [
         pluginId: { type: "string", description: "The plugin ID to disable" },
       },
       required: ["pluginId"],
+    },
+  },
+  // Skills
+  {
+    name: "skills_list",
+    description: "List all available skills. Skills provide on-demand context about plugin usage.",
+    inputSchema: { type: "object", properties: {}, required: [] },
+  },
+  {
+    name: "skills_get",
+    description: "Get the full content of a skill to learn how to use a plugin.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        skillId: { type: "string", description: "The skill ID (usually the plugin ID)" },
+      },
+      required: ["skillId"],
+    },
+  },
+  {
+    name: "skills_generate",
+    description: "Generate a skill from a plugin's GitHub repository. Fetches README and docs.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pluginId: { type: "string", description: "The plugin ID to generate a skill for" },
+      },
+      required: ["pluginId"],
+    },
+  },
+  {
+    name: "skills_delete",
+    description: "Delete a skill.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        skillId: { type: "string", description: "The skill ID to delete" },
+      },
+      required: ["skillId"],
+    },
+  },
+  {
+    name: "skills_refresh",
+    description: "Refresh a skill by re-fetching from the plugin's GitHub repository.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        skillId: { type: "string", description: "The skill ID to refresh" },
+      },
+      required: ["skillId"],
     },
   },
 ];

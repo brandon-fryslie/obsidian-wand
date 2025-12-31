@@ -91,7 +91,14 @@ export type ToolName =
   | "plugins.install"
   | "plugins.uninstall"
   | "plugins.enable"
-  | "plugins.disable";
+  | "plugins.disable"
+
+  // Skill operations
+  | "skills.list"
+  | "skills.get"
+  | "skills.generate"
+  | "skills.delete"
+  | "skills.refresh";
 
 export interface ToolDefinition {
   name: ToolName;
